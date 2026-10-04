@@ -2,6 +2,7 @@
 
 Ein **Sandbox**-Mod für Minecraft Java (Fabric) mit Mechaniken aus Taktik-Shootern: Operatoren, zerstörbare und verstärkbare Wände, Hitscan-Waffen, Fallen, Lehnen.
 Es gibt **keine Runden, Phasen oder festen Teams**: Alle Mechaniken sind jederzeit frei in der normalen Welt nutzbar.
+Jeder Spieler schaltet per Taste **G** zwischen „Normal-Minecraft“ und „Siege-Mix“ um. Alle Spielwerte sind einstellbar (Befehle und GUI), der Server entscheidet immer.
 Alle Namen, Texturen und Sounds sind eigene oder Platzhalter, es gibt keine fremden Assets.
 
 | | Version |
@@ -66,10 +67,15 @@ Die fertige Mod-Datei entsteht mit `gradlew.bat build` unter `build/libs/breachl
 
 **Test:** Siehe Testanleitung unten.
 
-### Als Nächstes: Etappe 3, Sandbox-Grundlage
-Jederzeit einen Operator wählen (`/breachline operator <name>`) und sein Loadout bekommen, normaler Tod mit Respawn, PvP per Befehl an/aus, Ladungen pro Spieler gespeichert, Mehrspieler-tauglich.
+### Als Nächstes: Etappe 3a, Konfiguration + Befehle
+Zentrales Einstellungssystem: Jeder Wert hat Standard/Min/Max, gespeichert als JSON pro Welt, Presets (Casual, Realistisch, Chaos), Befehle `/breachline set|get|preset|reset`, globale Werte nur für Admins.
 
-**Gesamtplan:** Alle Etappen mit Abhängigkeiten, Risiken und Gadget-Begrenzungen stehen in der **[Roadmap (docs/roadmap.md)](docs/roadmap.md)**.
+Danach folgen:
+- **3b:** Modus-Umschalter **G** (Normal-Minecraft ↔ Siege-Mix, pro Spieler auf dem Server), Spielerzustand, Operator-Auswahl, PvP an/aus.
+- **3c:** Einstellungs-GUI (Taste **K**, `/breachline settings`).
+- **Dann:** Wände, Schießen, Fallen, Operatoren, Bewegung, optionaler Rundenmodus.
+
+**Gesamtplan:** Alle Etappen mit Abhängigkeiten, Risiken, Client-/Server-Aufteilung, Gadget-Begrenzungen und Presets stehen in der **[Roadmap (docs/roadmap.md)](docs/roadmap.md)**.
 
 ## Testanleitung Etappe 2
 

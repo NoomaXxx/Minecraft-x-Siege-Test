@@ -1,192 +1,264 @@
 # Roadmap: Breachline als Sandbox-Mod
 
-Stand: Oktober 2026 · reine Planung, noch kein Code.
+Stand: Oktober 2026 · reine Planung, noch kein Code für Etappe 3+.
 
 ## Grundkonzept
 
-Breachline ist **kein Rundenspiel**. Es gibt keine Runden, Phasen, Timer oder festen Teams.
-Spieler nutzen die Taktik-Mechaniken **jederzeit frei in der normalen Minecraft-Welt**: Operator wählen, Wände verstärken oder sprengen, schießen, Fallen legen.
+Breachline ist **kein Rundenspiel**. Spieler nutzen die Taktik-Mechaniken **jederzeit frei in der normalen Minecraft-Welt**.
+Jeder Spieler kann per Taste zwischen **„Normal-Minecraft“** und **„Siege-Mix“** umschalten.
 
-Daraus folgen drei Design-Regeln für alle Etappen:
+Design-Regeln für alle Etappen:
 
-1. **Begrenzung über Vorrat und Cooldown statt Rundenlimit.** Jedes Gadget hat Ladungen, die sich mit der Zeit wieder auffüllen, und eine Obergrenze für gleichzeitig aktive Objekte.
-2. **Ladungen gehören dem Spieler, nicht dem Item.** Sie werden am Spieler gespeichert (Fabric Data Attachment API). So lassen sich Gadgets nicht durch Wegwerfen, Kisten oder Duplizieren vermehren.
-3. **Mehrspieler von Anfang an.** Der Server entscheidet alles (Treffer, Ladungen, Schaden), der Client zeigt nur an. Zustände pro Spieler, nie global.
+1. **Der Server entscheidet immer.** Der Client zeigt an und schickt Anfragen (Taste gedrückt, Regler bewegt). Der Server prüft Rechte und Grenzen und antwortet.
+2. **Keine festen Zahlen im Code.** Jeder Spielwert (Munition, Cooldown, Schaden …) kommt aus der Konfiguration. Jeder Wert hat Standard, Minimum und Maximum.
+3. **Begrenzung über Vorrat, Regeneration und Max-aktiv** statt Rundenlimit. Ladungen gehören dem **Spieler**, nicht dem Item (Fabric Data Attachment API). Wegwerfen oder Duplizieren bringt also nichts.
+4. **Mehrspieler von Anfang an:** alle Zustände pro Spieler-UUID, Rechte-Prüfung bei globalen Einstellungen.
+5. **Normalmodus = Vanilla.** Für Spieler im Normalmodus sind Siege-Items, Wandschutz, Ladungen und HUD aus.
 
-> Hinweis: `docs/research.md` stammt aus der Zeit vor der Konzeptänderung. Die Technik-Recherche gilt weiter, die Etappennummern und das Rundensystem dort sind veraltet.
+> `docs/research.md` stammt teilweise aus der Zeit vor der Konzeptänderung. Punkt 5 dort (Tasten, Pakete, Screens) ist aktuell. Die Etappennummern in den Punkten 1–4 sind veraltet.
 
 ---
 
 ## Etappen im Überblick
 
-| # | Etappe | Hängt ab von | Risiko | Mixins? |
-|---|---|---|---|---|
-| 1 | Projekt-Setup ✅ | – | niedrig | nein |
-| 2 | Testmap „Haus“ ✅ | 1 | niedrig | nein |
-| 3 | Sandbox-Grundlage | 1 | niedrig–mittel | nein |
-| 4 | Zerstörbare Wände + Verstärkung | 3 | mittel | nein |
-| 5 | Schießen (Hitscan) | 3 | mittel | nein |
-| 6 | Bewegung (Hocke, Kriechen, Lehnen) | 3 (5 für Zielen) | **hoch** | **ja** (2–4) |
-| 7 | Fallen | 3, 4 | mittel | nein |
-| 8 | Operatoren-System | 3, 4, 5, 7 | mittel | nein |
-| – | Später: Drohnen, Kameras, Blend, Rauch, Rundenmodus | 8 | hoch | teilweise |
+Empfohlene Reihenfolge von oben nach unten.
+
+| # | Etappe | Hängt ab von | Risiko | Mixins | Server-Code | Client-Code |
+|---|---|---|---|---|---|---|
+| 1 | Projekt-Setup ✅ | – | niedrig | nein | Log, Befehl | Log |
+| 2 | Testmap „Haus“ ✅ | 1 | niedrig | nein | Bau-Befehl | – |
+| **3a** | Konfiguration + Befehle | 1 | mittel | nein | **fast alles** | – |
+| **3b** | Modus-Umschalter + Spielerzustand + Operator-Auswahl | 3a | mittel | nein | Zustand, Prüfung, Loadout | Taste G, Paket, Mini-HUD |
+| **3c** | Einstellungs-GUI | 3a, 3b | mittel | nein | Werte senden, Änderungen prüfen | **Screen**, Taste K |
+| 4 | Wände + Verstärkung (überall) | 3b | mittel | nein | Blöcke, Schutz, Gadget-Logik | Partikel/Sound |
+| 5 | Schießen (Hitscan) | 3b | mittel | nein | Treffer, Schaden, Munition | Taste R, Rückstoß, Hitmarker |
+| 7 | Fallen | 3b, 4 | mittel | nein | Fallen-Logik, Besitzer | Warn-Effekte |
+| 8 | Operatoren (JSON) | 3b, 4, 5, 7 | mittel | nein | Laden, Loadout | Auswahl-Liste im GUI |
+| 6 | Bewegung (Hocke, Kriechen, Lehnen) | 3b, 5 | **hoch** | **ja (2–4)** | Pose, Lean-Status | Kamera, Tasten C/Q/E |
+| R | Optionaler Rundenmodus | 3a, 8 | mittel | nein | Teams, Runden, Respawn-Regeln | Rundenanzeige |
+| – | Später: Drohnen, Kameras, Blend, Rauch | 8 | hoch | teilweise | Entities | Kamera-Wechsel, Overlays |
 
 ### Abhängigkeiten
 
 ```
-1 Setup ─► 2 Testmap (Testgelände für alles Weitere)
-   │
-   └──► 3 Sandbox-Grundlage (Spielerzustand, Ladungen, Loadout, PvP)
-          ├──► 4 Wände ───────┐
-          ├──► 5 Schießen ────┤
-          │      └──► 6 Bewegung (Zielen nutzt Waffe)
-          ├──► 7 Fallen ◄─────┘ (nutzt Platzier- und Ladungslogik aus 4)
-          └──► 8 Operatoren (bündelt Waffen aus 5 + Gadgets aus 4/7)
-                 └──► Später: Drohnen, Kameras, Granaten, Rundenmodus
+1 ─► 2 Testmap (Testgelände)
+│
+└─► 3a Konfiguration + Befehle ─────────────────────────────┐
+       └─► 3b Modus G + Spielerzustand + Operator-Wahl       │
+              ├─► 3c Einstellungs-GUI (K)                    │
+              ├─► 4 Wände ──┐                                │
+              ├─► 5 Schießen┼─► 7 Fallen                     │
+              │             └───────► 8 Operatoren ──────────┼─► R Rundenmodus (optional)
+              └─────────────────────────► 6 Bewegung (Ende)  │
+                                                             └─ alle Etappen lesen Werte aus 3a
 ```
 
-### Empfehlung zur Reihenfolge
+### Abweichungen von deinem Vorschlag und warum
 
-**Etappe 6 (Bewegung) nach Etappe 8 verschieben.** Die empfohlene Reihenfolge ist damit 3 → 4 → 5 → 7 → 8 → 6.
-
-**Warum:**
-- Bewegung ist die einzige Etappe mit hohem Risiko und Mixins.
-- Nichts anderes hängt von ihr ab.
-- Wenn sie hakt, blockiert sie sonst Fallen und Operatoren.
-
-So entsteht zuerst ein vollständig spielbarer Sandbox-Mod. Die Nummern bleiben zur Orientierung trotzdem gleich.
+| Dein Vorschlag | Meine Änderung | Begründung |
+|---|---|---|
+| 3 = Sandbox + Modus + Einstellungen + Befehle | **Aufgeteilt in 3a und 3b** | Das wären 4 neue Systeme in einer Etappe: JSON-Speicherung, Rechte, Netzwerk-Pakete, Spielerzustand. Für „kleine, testbare Etappen“ zu groß. 3a ist rein serverseitig und per Befehl testbar. 3b bringt die erste Client-Server-Kommunikation (Taste G). Geht etwas schief, weiß man so sofort, in welchem Teil. |
+| Einstellungen und Modus gleichzeitig | **Konfiguration zuerst (3a)** | Der Modus-Umschalter braucht schon einen Konfigurationswert (Cooldown für den Wechsel). Ohne fertige Konfiguration müsste man Zahlen fest einbauen, gegen unsere Regel. |
+| 3b = GUI | heißt jetzt **3c**, Inhalt gleich | Nur Umbenennung wegen der Aufteilung oben |
+| 6 Bewegung ans Ende | **übernommen** | Höchstes Risiko, Mixins, nichts hängt davon ab |
+| Rundenmodus danach | **übernommen** als „R“ | Baut auf 3a (Einstellungen) und 8 (Operatoren) auf und lässt die Sandbox unverändert |
 
 ---
 
-## Etappe 3: Sandbox-Grundlage
+## Etappe 3a: Konfiguration + Befehle
 
-**Ziel:** Jeder Spieler kann jederzeit einen Operator wählen und bekommt dessen Loadout.
+**Ziel:** Ein zentrales Einstellungssystem, aus dem später alle Etappen ihre Werte lesen.
 
-| Baustein | Umsetzung | API |
+**Aufbau eines Werts** (Datenklasse, z. B. `Setting`):
+
+| Feld | Beispiel |
+|---|---|
+| Schlüssel | `gadget.mine.charges` |
+| Typ | Ganzzahl, Kommazahl oder an/aus |
+| Standard / Min / Max | 2 / 0 / 10 |
+| Bereich | `GLOBAL` (nur Admins) oder `PERSONAL` (jeder Spieler für sich) |
+| Kategorie | „Gadgets“, „Waffen“, „Allgemein“ (für die GUI) |
+
+**Funktionen:**
+- **Speicherung als JSON pro Welt:** `<Weltordner>/breachline/settings.json`. Gespeichert werden nur Abweichungen vom Standard, die Datei bleibt also kurz.
+- **Prüfung beim Laden und Setzen:** Ein Wert außerhalb von Min/Max wird abgelehnt (Befehl) bzw. auf die Grenze gesetzt und geloggt (beim Laden einer kaputten Datei).
+- **Reset:** `/breachline reset` setzt alles auf Standard, `/breachline reset <Wert>` nur einen Wert.
+- **Presets:** `/breachline preset casual|realistisch|chaos` überschreibt mehrere Werte auf einmal (siehe unten).
+- **Befehle:** `/breachline set <Wert> <Zahl>`, `/breachline get [Wert]` (ohne Angabe: alle). Tab-Vervollständigung für Wertnamen.
+- **Rechte:** `GLOBAL`-Werte nur mit Operator-Level (geprüft über `source.permissions().hasPermission(Permissions.COMMANDS_MODERATOR)`, siehe research.md). `get` darf jeder.
+- **Erste Werte:** `pvp.enabled`, `mode.switch_cooldown_seconds`, `operator.switch_cooldown_seconds`. Alle weiteren Werte kommen **in der Etappe dazu, die sie braucht** (Waffenwerte in 5, Fallenwerte in 7 …), damit es keine toten Einstellungen gibt.
+
+| Teil | Server | Client |
 |---|---|---|
-| Operator wählen | Befehl `/breachline operator <name>` (Tab-Vervollständigung). Ein Auswahl-Menü (Screen) folgt später. | Fabric Command API |
-| Loadout geben | Inventar-Slots füllen, alte Breachline-Items vorher entfernen | Vanilla |
-| Seite | Angreifer/Verteidiger ergibt sich aus dem gewählten Operator, nicht aus einem Team | eigene Daten |
-| Spielerzustand | Gewählter Operator + Ladungen pro Gadget, gespeichert am Spieler, übersteht Neustart und Tod | **Fabric Data Attachment API** |
-| Tod | Normaler Minecraft-Tod und Respawn. Der Operator bleibt gewählt, das Loadout wird beim Respawn neu gegeben. | `ServerPlayerEvents` (Respawn) |
-| PvP an/aus | `/breachline pvp on\|off`, gilt serverweit, nur für Admins. Blockt Spieler-gegen-Spieler-Schaden. | `ServerLivingEntityEvents.ALLOW_DAMAGE` |
-| Platzhalter-Operatoren | 2 Test-Operatoren mit Vanilla-Items, bis echte Waffen und Gadgets existieren | – |
+| Datenklassen, JSON, Prüfung, Presets, Befehle | ✅ | – |
 
-**Mehrspieler-Punkte:**
-- Alle Daten pro Spieler-UUID.
-- Befehle mit Rechte-Prüfung: `pvp` nur für Admins, `operator` für alle.
-- Operator-Wechsel bekommt einen Cooldown (z. B. 30 s), sonst lassen sich Ladungen durch Wechseln auffüllen.
+**Risiko: mittel.** JSON-Speichern mit Mojangs `Codec` und der Pfad zum Weltordner sind neu für uns. **Mixins: nein.**
 
-**Risiko: niedrig–mittel.** Neu für uns sind die Data Attachment API und Rechte-Prüfungen in 26.x.
+## Etappe 3b: Modus-Umschalter + Spielerzustand + Operator-Auswahl
+
+**Modus „Normal“ / „Siege-Mix“:**
+- **Taste G** (frei belegbar in *Optionen → Steuerung*, eigene Kategorie „Breachline“) schickt nur eine **Anfrage** an den Server: `ToggleModePayload`.
+- Der Server prüft den Cooldown aus der Konfiguration und optional „nicht im Kampf“ (kein Schaden in den letzten X s). Erst dann schaltet er um und schickt den neuen Zustand zurück.
+- Auch per Befehl: `/breachline mode [normal|siege]`.
+- Der Zustand liegt am Spieler (Data Attachment, `persistent` + `copyOnDeath`). Er übersteht Tod und Neustart.
+
+**Was passiert beim Umschalten:**
+
+| Richtung | Aktion |
+|---|---|
+| Siege → Normal | Siege-Items werden aus dem Inventar genommen und am Spieler „geparkt“, HUD aus, Wandschutz und Gadgets wirken für diesen Spieler nicht mehr |
+| Normal → Siege | Geparkte Items kommen zurück, oder das Loadout des gewählten Operators wird neu gegeben |
+
+**Weiteres in 3b:**
+- Operator wählen: `/breachline operator <name>` mit 2 Platzhalter-Operatoren, Loadout aus Vanilla-Items.
+- Normaler Tod und Respawn: Modus und Operator bleiben, das Loadout wird beim Respawn neu gegeben.
+- PvP an/aus über den Konfigurationswert `pvp.enabled` (Fabric `ServerLivingEntityEvents.ALLOW_DAMAGE`).
+- Mini-HUD: zeigt nur „SIEGE“ / „NORMAL“ in einer Ecke (Fabric `HudElementRegistry`). Persönliche Option „HUD an/aus“.
+
+| Teil | Server | Client |
+|---|---|---|
+| Spielerzustand, Cooldown-Prüfung, Item-Parken, Loadout, PvP | ✅ | – |
+| Taste G, Paket senden, HUD-Anzeige | – | ✅ |
+
+**Risiko: mittel.** Das ist das erste eigene Netzwerk-Paket, und das Item-Parken darf keine Items verlieren oder verdoppeln. **Mixins: nein.**
+
+## Etappe 3c: Einstellungs-GUI
+
+- Öffnen mit **Taste K** oder `/breachline settings`. Der Befehl schickt ein Paket an den Client: „öffne GUI“.
+- Ablauf:
+  1. Der Client fragt die aktuellen Werte an. Der Server antwortet mit **Wert + Min + Max + Bereich** für alle Einstellungen.
+  2. Die GUI baut sich **automatisch aus dieser Liste**: Regler für Zahlen, Schalter für an/aus, Reiter pro Kategorie, Knöpfe für Presets und Reset. Neue Einstellungen aus späteren Etappen erscheinen also ohne GUI-Änderung.
+  3. Eine Änderung schickt ein `SetSettingPayload`. Der Server prüft Rechte und Grenzen, speichert und schickt allen Admins mit offener GUI den neuen Stand.
+- Nicht-Admins sehen globale Werte nur zum Lesen (Regler ausgegraut) und können ihre persönlichen Optionen ändern.
+
+| Teil | Server | Client |
+|---|---|---|
+| Werte-Liste senden, Änderungen prüfen und speichern | ✅ | – |
+| Screen, Widgets, Taste K | – | ✅ |
+
+**Risiko: mittel.** Die Screen-API wurde in 26.x umbenannt (`extractRenderState`, `gui.setScreen`), dazu muss ein guter Regler-Widget gefunden werden **(ungeprüft)**. **Mixins: nein.**
 
 ## Etappe 4: Zerstörbare Wände + Verstärkung (überall)
 
-- Eigener Block **„Weiche Wand“** + Block-Tag `breachline:breakable_wall`. Der Tag ist erweiterbar, z. B. für Holzbretter in der Welt. Die Testmap tauscht `HouseBuilder.WALL_BLOCK` auf diesen Block.
-- **Verstärkungs-Item:** Rechtsklick auf eine Wand ersetzt einen Bereich von 2×3 Blöcken durch den Block **„Verstärkte Wand“**.
-- **Durchbruch-Ladung:** platzierbar an weicher Wand, zündet nach 3 s und entfernt einen begrenzten Bereich (z. B. 3×3). Eigene Logik, keine Vanilla-Explosion.
-- **Schutz:** Spieler können Breachline-Wände nicht abbauen (`AttackBlockCallback` + `PlayerBlockBreakEvents.BEFORE`). Normale Welt-Blöcke bleiben in der Sandbox abbaubar.
-- Ab hier kommt das **Ladungssystem** aus Etappe 3 zum ersten Mal zum Einsatz.
+- Eigene Blöcke **„Weiche Wand“** und **„Verstärkte Wand“** + Block-Tag `breachline:breakable_wall`. Die Testmap tauscht `HouseBuilder.WALL_BLOCK`.
+- Verstärkungs-Item, Durchbruch-Ladung (eigene Logik, keine Vanilla-Explosion), Schutz gegen Abbauen (`AttackBlockCallback` + `PlayerBlockBreakEvents.BEFORE`).
+- **Modus-Regel:** Schutz und Gadgets wirken nur für Spieler im Siege-Modus. Wie sich die Wandblöcke für Normal-Spieler verhalten, ist eine offene Frage (siehe unten).
 
-**Risiko: mittel.** Block-Flackern beim Client (gelöst durch zwei Schichten). Außerdem muss der Schutz in jeder Welt greifen, nicht nur in der Testmap.
+| Server | Client |
+|---|---|
+| Blöcke, Schutz, Gadget-Logik, Ladungen | Partikel, Sound, Ladungsanzeige |
+
+**Risiko: mittel · Mixins: nein.**
 
 ## Etappe 5: Schießen
 
-Hitscan-Waffe als Item: Magazin (Data Component), Nachladen (Taste R → Paket an Server), Streuung, Schaden, Cooldown, Rückstoß, Hitmarker und Sound-Platzhalter. Details stehen in `docs/research.md`, Punkt 2.
+Hitscan-Waffe: Magazin (Data Component), Nachladen (Taste R → Paket), Streuung, Schaden, Rückstoß, Hitmarker, Sound-Platzhalter. Details stehen in `docs/research.md`, Punkt 2.
 
-- **Ohne Runden:** Reservemunition am Spieler. Auffüllen über Munitionskiste (Block, Cooldown pro Spieler) oder beim Respawn.
-- Waffenwerte (Schaden, Feuerrate, Streuung, Magazin) kommen von Anfang an aus einer **Datenklasse**. Die 4 Kategorien in Etappe 8 sind dann nur noch Daten.
+- **Neue Konfigurationswerte je Kategorie** (Sturmgewehr, SMG, Schrotflinte, Pistole): Schaden, Magazingröße, Max-Reservemunition, Nachladezeit, Feuerrate, Streuung.
 
-**Risiko: mittel.** Schießen per Rechtsklick (Linksklick ist Abbauen) und Lag im Mehrspieler.
+| Server | Client |
+|---|---|
+| Raycast, Schaden, Munition, Nachladen | Taste R, Rückstoß, Hitmarker, Munitionsanzeige |
 
-## Etappe 6: Bewegung (Risiko hoch)
-
-Hocke (Vanilla-Schleichen), Kriechen/Liegen (Pose `SWIMMING` + Mixin auf `Player.updatePlayerPose`), Lehnen Q/E (Kamera-Mixin auf `Camera.alignWithEntity`). Details stehen in `docs/research.md`, Punkt 1.
-
-**Ehrliche Einschätzung:** Lehnen ist nur eine Kamera-Illusion, die Hitbox lehnt nicht mit. Mixins können bei jedem Minecraft-Update brechen.
-
-**Risiko: hoch · Mixins: ja (2–4).**
+**Risiko: mittel · Mixins: nein.**
 
 ## Etappe 7: Fallen
 
-| Falle | Wirkung | Technik |
-|---|---|---|
-| Stachelmatte | Verlangsamt stark + leichter Schaden beim Betreten | Eigener flacher Block, `entityInside` → Slowness + Schaden mit Cooldown pro Opfer |
-| Elektrodraht | Schaden über Zeit. Vorher Warnung durch Funken-Partikel und Summen-Sound. | Block an Wand/Boden, tickt alle 0,5 s im Radius |
-| Mine | Explosion **ohne Blockzerstörung**: Schaden + Rückstoß | Block/Entity mit Annäherungs-Sensor, Explosion ohne Block-Interaktion oder eigene Schadenslogik |
+Stachelmatte (verlangsamt + Schaden), Elektrodraht (Schaden über Zeit mit Warnung), Mine (Explosion ohne Blockzerstörung).
 
-- **Besitzer-Regel:** Fallen merken sich, wer sie gelegt hat. Sie lösen nicht beim Besitzer aus, später optional auch nicht bei seiner Seite.
-- **Aufräumen:** Fallen verschwinden nach 10 min oder wenn der Besitzer offline geht (Option). Sonst ist die Welt irgendwann voller Fallen.
-- **Abbaubar:** Gegner können Fallen mit Schlägen zerstören (Konter).
+- Fallen merken sich ihren Besitzer, lösen bei ihm nicht aus und verschwinden nach einer konfigurierbaren Zeit.
+- Fallen lösen nur bei Spielern im Siege-Modus aus **(Vorschlag, siehe offene Fragen)**.
 
-**Risiko: mittel.** Neu sind Block-Entities mit Tick-Logik und die Besitzer-Speicherung.
+| Server | Client |
+|---|---|
+| Fallen-Logik, Besitzer, Ladungen | Warn-Partikel, Sounds |
+
+**Risiko: mittel · Mixins: nein.**
 
 ## Etappe 8: Operatoren-System
 
-**Datenmodell (eine Datei pro Operator, JSON im Mod oder im Datapack):**
+- Operator = JSON-Datei (Primärwaffe, Sekundärwaffe, Gadget, Fähigkeit, Seite). Neue Operatoren brauchen keinen neuen Code. Ladbar per Datapack.
+- Platzhalter: **Angreifer** Breacher, Scout, Medic · **Verteidiger** Warden, Trapper, Watcher (eigene Namen).
+- Operator-Auswahl auch in der GUI (Liste aus 3c erweitern).
 
-```json
-{
-  "id": "breachline:breacher",
-  "name": "Breacher",
-  "side": "attacker",
-  "primary": "breachline:assault_rifle",
-  "secondary": "breachline:pistol",
-  "gadget": { "item": "breachline:breach_charge", "charges": 3 },
-  "ability": { "type": "breachline:heavy_breach", "cooldown_seconds": 120 }
-}
-```
+| Server | Client |
+|---|---|
+| JSON laden, prüfen, Loadout | Auswahl-Liste |
 
-- Ein neuer Operator braucht **keinen neuen Code**, nur eine JSON-Datei, solange er vorhandene Waffen, Gadgets und Fähigkeitstypen nutzt.
-- Ladbar über den Datapack-Mechanismus. Damit können Server Operatoren hinzufügen oder anpassen.
+**Risiko: mittel · Mixins: nein.**
 
-**Platzhalter-Operatoren (eigene Namen):**
+## Etappe 6: Bewegung (ans Ende verschoben)
 
-| Seite | Name | Gadget / Fähigkeit |
-|---|---|---|
-| Angreifer | Breacher | Schwere Durchbruch-Ladung (durchschlägt auch verstärkte Wände) |
-| Angreifer | Scout | Extra-Drohne (bis Drohnen existieren: Platzhalter, z. B. kurzer Glüh-Effekt auf Gegner in der Nähe) |
-| Angreifer | Medic | Heilspritze |
-| Verteidiger | Warden | Zusätzliche Verstärkungen |
-| Verteidiger | Trapper | Zusätzliche Fallen |
-| Verteidiger | Watcher | Extra-Kameras (bis Kameras existieren: Platzhalter) |
+Hocke (Vanilla), Kriechen (Pose `SWIMMING` + Mixin `Player.updatePlayerPose`), Lehnen Q/E (Mixin `Camera.alignWithEntity`). Details stehen in `docs/research.md`, Punkt 1.
 
-**Waffenkategorien:** Sturmgewehr, SMG, Schrotflinte (mehrere Strahlen pro Schuss), Pistole. Alle laufen über dieselbe Hitscan-Logik aus Etappe 5 mit unterschiedlichen Werten.
+- Nur im Siege-Modus aktiv. Die Tasten C/Q/E schicken Anfragen an den Server.
+- **Ehrlich:** Lehnen ist eine Kamera-Illusion, die Hitbox lehnt nicht mit.
 
-**Risiko: mittel.** JSON-Laden mit Codecs (Mojang-Serialisierung) ist neu, die Logik selbst ist einfach.
+| Server | Client |
+|---|---|
+| Pose-Zustand, Lean-Status für Treffer | Kamera-Mixin, Tasten |
+
+**Risiko: hoch · Mixins: ja (2–4).**
+
+## Etappe R: Optionaler Rundenmodus
+
+- **Eigenes Modul** auf Basis derselben Einstellungen: Teams, Rundenlänge, Vorbereitungszeit, Respawn-Regeln (an/aus, Zuschauer), Rundenanzeige.
+- **Darf die Sandbox nicht verändern.** Er läuft nur, wenn ein Admin eine Runde startet, und nur für die Spieler in dieser Runde. Alle anderen spielen normal weiter.
+- Nutzt die Spawns aus `MapLayout`.
+
+| Server | Client |
+|---|---|
+| Teams, Rundenablauf, Respawn | Rundenanzeige, Timer |
+
+**Risiko: mittel · Mixins: nein.**
 
 ## Später
 
-| Feature | Notiz | Risiko |
-|---|---|---|
-| Drohnen | Steuerbare Entity mit Kamera-Wechsel, braucht Client-Kamera-Trick | hoch |
-| Kameras | Fest platziert, Ansicht umschalten. Ähnliche Kamera-Technik wie Drohnen. | hoch |
-| Blendgranate | Wurf-Entity, weißes Overlay + Verlangsamung je nach Blickrichtung | mittel |
-| Rauchgranate | Partikelwolke, die die Sicht blockiert. Partikel blockieren keine Treffer, also ggf. Raycast-Sperre im eigenen Schuss-Code. | mittel |
-| Rundenmodus (optional) | Aufsatz auf die Sandbox: Phasen, Timer, Teams, nutzt die Spawns aus `MapLayout` | mittel |
+Drohnen, Kameras (Kamera-Wechsel = hohes Risiko), Blendgranate, Rauchgranate.
 
 ---
 
-## Gadget-Begrenzungen ohne Runden
+## Gadget-Begrenzungen (Standardwerte der Konfiguration)
 
 **Prinzip:**
-- **Vorrat** (max. Ladungen) + **Regeneration** (1 Ladung alle X s) + **Max. aktiv** (gleichzeitig in der Welt).
-- Wird ein Objekt über dem Limit gelegt, verschwindet das älteste.
-- Ladungen bleiben beim Tod erhalten. Sonst wäre Selbstmord ein Nachfüll-Trick.
+- **Vorrat** + **Regeneration** (1 Ladung alle X s) + **Max. aktiv** (gleichzeitig in der Welt).
+- Wird über dem Limit gelegt, verschwindet das älteste Objekt.
+- Ladungen bleiben beim Tod erhalten, sonst wäre Selbstmord ein Nachfüll-Trick.
+- **Alle Zahlen sind Standardwerte mit eigenem Min/Max in der Konfiguration.**
 
 | Gadget | Vorrat | Regeneration | Max. aktiv | Sonstiges |
 |---|---|---|---|---|
-| Verstärkung | 5 (Warden: 8) | 1 / 45 s | – (Wand bleibt verstärkt) | Verstärkte Wand wird nach 30 min wieder weich (optional, gegen Bunker-Welten) |
-| Durchbruch-Ladung | 2 | 1 / 60 s | 2 platziert | Zündverzögerung 3 s |
+| Verstärkung | 5 (Warden: 8) | 1 / 45 s | – | Optional: Verstärkung verfällt nach 30 min |
+| Durchbruch-Ladung | 2 | 1 / 60 s | 2 | Zündverzögerung 3 s |
 | Schwere Durchbruch-Ladung (Breacher) | 1 | Cooldown 120 s | 1 | Einziges Mittel gegen verstärkte Wände |
-| Stachelmatte | 3 (Trapper: 5) | 1 / 40 s | 3 (Trapper: 5) | Despawn nach 10 min |
-| Elektrodraht | 2 (Trapper: 3) | 1 / 60 s | 2 (Trapper: 3) | 1 s Warnung vor erstem Schaden |
-| Mine | 2 (Trapper: 3) | 1 / 90 s | 2 (Trapper: 3) | Scharf erst 2 s nach dem Legen, Despawn nach 10 min |
-| Heilspritze (Medic) | 3 | 1 / 30 s | – | Kein Selbst-Spam: 5 s Cooldown zwischen Einsätzen |
-| Drohne | 1 (Scout: 2) | 1 / 45 s nach Zerstörung | 1 (Scout: 2) | – |
-| Kamera | 3 (Watcher: 5) | 1 / 60 s | 3 (Watcher: 5) | – |
-| Blendgranate | 2 | 1 / 60 s | – | – |
-| Rauchgranate | 2 | 1 / 60 s | – | – |
-| Munition | Magazin + Reserve | Munitionskiste, 30 s Cooldown pro Spieler | – | – |
-| Operator-Wechsel | – | Cooldown 30 s | – | Verhindert Nachfüllen durch Wechseln |
+| Stachelmatte | 3 (Trapper: 5) | 1 / 40 s | 3 (5) | Despawn nach 10 min |
+| Elektrodraht | 2 (Trapper: 3) | 1 / 60 s | 2 (3) | 1 s Warnung vor erstem Schaden |
+| Mine | 2 (Trapper: 3) | 1 / 90 s | 2 (3) | Scharf erst nach 2 s |
+| Heilspritze (Medic) | 3 | 1 / 30 s | – | 5 s zwischen Einsätzen |
+| Drohne | 1 (Scout: 2) | 1 / 45 s | 1 (2) | – |
+| Kamera | 3 (Watcher: 5) | 1 / 60 s | 3 (5) | – |
+| Blend-/Rauchgranate | je 2 | 1 / 60 s | – | – |
+| Munition | Magazin + Reserve | Munitionskiste, 30 s Cooldown | – | Werte je Waffenkategorie |
+| Operator-Wechsel | – | Cooldown 30 s | – | gegen Nachfüllen durch Wechseln |
+| Modus-Wechsel (G) | – | Cooldown 10 s | – | gegen „Flucht“ in den Normalmodus |
 
-**Alle Werte sind Startwerte.** Sie gehören in eine Konfiguration, damit man sie ohne neuen Code anpassen kann.
+## Presets
+
+| Wert (Auswahl) | Casual | Realistisch | Chaos |
+|---|---|---|---|
+| Waffenschaden | ×0,75 | ×1,25 | ×1,0 |
+| Reservemunition | ×2 | ×0,75 | ×5 |
+| Nachladezeit | ×0,75 | ×1,25 | ×0,5 |
+| Gadget-Vorrat | ×1,5 | ×1,0 | ×3 |
+| Regeneration (Zeit) | ×0,5 | ×1,5 | ×0,25 |
+| Max. aktive Fallen | ×1,0 | ×1,0 | ×3 |
+| Modus-/Operator-Cooldown | ×0,5 | ×2 | ×0 |
+| PvP | an | an | an |
+
+Ein Preset setzt die betroffenen Werte auf **Standard × Faktor** und begrenzt sie auf Min/Max. Danach kann man einzelne Werte weiter anpassen.
+
+## Offene Fragen (vor Etappe 3b/4 klären)
+
+1. **Siege-Spieler gegen Normal-Spieler:** Dürfen Siege-Waffen und -Fallen Normal-Spieler verletzen? Mein Vorschlag: nein, per Konfiguration `mode.cross_mode_damage` (Standard: aus). Sonst wird der Normalmodus zum Freiwild-Modus.
+2. **Wandblöcke für Normal-Spieler:** Sollen Normal-Spieler Breachline-Wände mit der Spitzhacke abbauen können? Vorschlag: ja, wie Steinziegel. Der Schutz gilt nur gegen Siege-Spieler, damit Normal-Spieler nicht feststecken.
+3. **Kampf-Sperre beim Moduswechsel:** Wechsel verbieten, wenn man in den letzten 5 s Schaden bekommen hat? Vorschlag: ja, als Konfigurationswert.

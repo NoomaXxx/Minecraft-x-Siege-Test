@@ -4,7 +4,8 @@
 Breachline ist ein **Sandbox**-Mod für Minecraft Java (Fabric), der Taktik-Shooter-Mechaniken im Stil von Rainbow Six Siege nachbaut: Operatoren mit Loadout, zerstörbare und verstärkbare Wände, Hitscan-Waffen, Fallen, Kriechen und Lehnen.
 - **Kein Rundenspiel:** kein Rundensystem, keine Phasen, keine Timer, keine festen Teams. Alle Mechaniken sind jederzeit frei in der normalen Minecraft-Welt nutzbar. Ein Rundenmodus kommt höchstens später als optionaler Zusatz.
 - Begrenzung über **Vorrat/Cooldown pro Spieler** statt Rundenlimit. Ladungen werden am Spieler gespeichert, nicht im Item.
-- Mehrspieler immer mitdenken: Der Server entscheidet, Zustände pro Spieler.
+- **Modus pro Spieler:** Taste G (frei belegbar) bzw. `/breachline mode` schaltet zwischen „Normal-Minecraft“ (Vanilla, alle Siege-Funktionen aus) und „Siege-Mix“. Der Zustand liegt serverseitig am Spieler.
+- Mehrspieler immer mitdenken: Zustände pro Spieler.
 - Etappenplan: `docs/roadmap.md`.
 - **Nur die Mechaniken.** Keine Ubisoft-Assets, -Namen, -Logos, -Operator- oder -Gadget-Namen.
 - Alle Namen, Texturen und Sounds sind eigene oder Platzhalter.
@@ -26,7 +27,15 @@ Die Versionen stehen in `gradle.properties`. Basis ist die offizielle `fabric-ex
 - Gefärbte Blöcke sind in 26.x Familien: `Blocks.WOOL.red()`, `Blocks.STAINED_GLASS.blue()` statt `Blocks.RED_WOOL` usw.
 - Mod-ID `breachline`, Paket `dev.noah.breachline`. Server/gemeinsamer Code liegt in `src/main`, reiner Client-Code in `src/client`.
 - Wo es geht, offizielle Fabric-API nutzen. Mixins nur, wenn es nicht anders geht, und den Grund im Code und im README nennen.
-- Recherche-Ergebnisse stehen in `docs/research.md`.
+- Recherche-Ergebnisse stehen in `docs/research.md` (Punkt 5: Tasten, Pakete, Screens, Rechte in 26.3).
+
+## Server ist maßgeblich, Werte aus der Konfiguration
+- **Der Server entscheidet immer.** Der Client zeigt nur an und schickt Anfragen (Taste, GUI-Regler). Jedes Paket wird auf dem Server geprüft: Rechte, Cooldowns, Min/Max. Nie dem Client vertrauen.
+- **Alle Limits und Spielwerte kommen aus der Konfiguration**: Munition, Magazin, Nachladezeit, Schaden, Vorrat, Cooldown, Regeneration, Max-aktiv, PvP, Wechsel-Cooldowns.
+- **Keine festen Spielwerte im Code.** Jeder Wert ist ein Konfigurationseintrag mit Standard, Minimum und Maximum und wird beim Setzen und Laden geprüft. Neue Werte kommen in der Etappe dazu, die sie braucht.
+- Konfiguration: JSON pro Welt (`<Welt>/breachline/settings.json`), Presets Casual/Realistisch/Chaos, Reset auf Standard, Befehle `/breachline set|get|preset|reset`.
+- Rechte: Globale Werte nur für Admins (Operator-Level), persönliche Optionen (HUD, Taste) für jeden Spieler.
+- Ein späterer Rundenmodus ist ein **separates, optionales Modul** und darf den Sandbox-Modus nicht verändern.
 
 ## Arbeitsweise mit Noah (Anfänger)
 - Noah lernt Python und hat kein Java-Wissen. Antworte auf Deutsch.

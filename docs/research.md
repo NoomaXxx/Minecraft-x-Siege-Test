@@ -2,6 +2,8 @@
 
 Stand: Oktober 2026, Zielversion **Minecraft 26.3, Fabric API 0.161.0, Java 25**.
 
+> **Hinweis (Konzeptänderung):** Breachline ist inzwischen ein Sandbox-Mod ohne Rundensystem, siehe `docs/roadmap.md`. Die Technik in den Punkten 1–4 gilt weiter, die Etappennummern und das Rundensystem dort sind veraltet. **Punkt 5** (Tasten, Pakete, Screens, Rechte, Spielerdaten) ist neu und auf 26.3 geprüft.
+
 > **Vorab, wichtig für alles Weitere:** Seit Minecraft 26.1 ist der Spielcode unverschleiert. Fabric nutzt nur noch Mojangs offizielle Namen (z. B. `Player`, `Level`, `KeyMapping`). Die alten Yarn-Namen (`PlayerEntity`, `World`, `KeyBinding`) aus älteren Tutorials funktionieren nicht mehr. Auch einige Fabric-API-Klassen wurden umbenannt, z. B. `KeyBindingHelper` → `KeyMappingHelper`.
 > Quellen: [Fabric: Porting to 26.1](https://docs.fabricmc.net/develop/porting/fabric-api) · [Fabric: Migrating Mappings](https://docs.fabricmc.net/develop/porting/mappings/) · [PaperChunk: Fabric 26.1 Overhaul](https://paperchunk.com/blog/fabric-26-1-biggest-overhaul)
 
@@ -176,6 +178,141 @@ Bestätigt im Quellcode (`PlayerBlockBreakEvents`, Fabric API 26.3): `BEFORE` be
 - Im Kreativmodus greift `AttackBlockCallback` teils anders. Tests deshalb immer im Überlebens- oder Abenteuermodus.
 
 **Quellen:** [Fabric Wiki: Event Index](https://wiki.fabricmc.net/tutorial:event_index) · [PlayerBlockBreakEvents Javadoc](https://maven.fabricmc.net/docs/fabric-api-0.100.1+1.21/net/fabricmc/fabric/api/event/player/PlayerBlockBreakEvents.html) · [fabric-api Issue #3332](https://github.com/FabricMC/fabric-api/issues/3332) · [can_break-Komponente erklärt](https://gamever.io/knowledge-base/minecraft-commands-guide-how-to-destroy-blocks-with-can_break-component)
+
+---
+
+## 5. Client-Server-Grundlagen in 26.3: Tasten, Pakete, Screens, Rechte, Spielerdaten
+
+**Quellen geprüft:**
+- Fabric API (`FabricMC/fabric-api`, Stand 0.161.0+26.3)
+- Referenz-Code der offiziellen Fabric-Doku (`FabricMC/fabric-docs`, Ordner `reference/latest`, Stand 30.09.2026)
+
+Alles ohne **(ungeprüft)** steht so wörtlich im Quellcode.
+
+### 5a. Tastenbelegung (KeyMapping), nur Client
+
+```java
+// Eigene Kategorie in Optionen → Steuerung
+KeyMapping.Category CATEGORY = KeyMapping.Category.register(Breachline.id("breachline"));
+
+// Taste registrieren (Standard: G)
+KeyMapping toggleModeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+        "key.breachline.toggle_mode",   // Übersetzungsschlüssel (Text in assets/breachline/lang/*.json)
+        InputConstants.Type.KEYSYM,     // Tastatur (MOUSE für Maustasten)
+        InputConstants.KEY_G,           // Standardtaste
+        CATEGORY));
+
+// Abfragen: jeden Client-Tick
+ClientTickEvents.END_CLIENT_TICK.register(client -> {
+    while (toggleModeKey.consumeClick()) { /* Paket an Server schicken */ }
+});
+```
+
+- Pakete: `net.minecraft.client.KeyMapping`, `com.mojang.blaze3d.platform.InputConstants`, `net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper`, `net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents`.
+- **Neu seit 26.x:** Kategorien sind Objekte (`KeyMapping.Category.register(Identifier)`), keine Strings mehr.
+- Der Spieler kann die Taste in *Optionen → Steuerung* frei umbelegen, Minecraft speichert das automatisch. Dafür brauchen wir keinen eigenen Code.
+- `consumeClick()` in einer `while`-Schleife verarbeitet jeden Tastendruck genau einmal.
+- Achtung: `KEY_G`/`KEY_K` sind in Vanilla frei. Q ist „Item fallen lassen“, deshalb ist Lehnen mit Q/E später ein Konflikt.
+
+### 5b. Client-Server-Pakete (Custom Payloads)
+
+**1. Paket als `record` definieren** (gemeinsamer Code, `src/main`):
+
+```java
+public record ToggleModePayload() implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<ToggleModePayload> TYPE =
+            new CustomPacketPayload.Type<>(Breachline.id("toggle_mode"));
+    public static final StreamCodec<ByteBuf, ToggleModePayload> CODEC = // fabric-api nutzt hier ByteBuf, ob die Registrierung das so annimmt: (ungeprüft)
+            StreamCodec.unit(new ToggleModePayload()); // für Pakete ohne Inhalt (so in fabric-api genutzt)
+    @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+}
+```
+
+- Pakete mit Inhalt: `StreamCodec.composite(ByteBufCodecs.INT, MyPayload::value, MyPayload::new)`, so im Doku-Beispiel `GiveGlowingEffectServerboundPayload`.
+
+**2. Registrieren** (gemeinsamer Code, beim Start):
+- Client → Server: `PayloadTypeRegistry.serverboundPlay().register(TYPE, CODEC)`
+- Server → Client: `PayloadTypeRegistry.clientboundPlay().register(TYPE, CODEC)`
+- **Neu seit 26.x:** `serverboundPlay`/`clientboundPlay` statt früher `playC2S`/`playS2C`.
+
+**3. Empfangen und senden:**
+
+| Richtung | Senden | Empfangen |
+|---|---|---|
+| Client → Server | `ClientPlayNetworking.send(payload)` | `ServerPlayNetworking.registerGlobalReceiver(TYPE, (payload, context) -> { ServerPlayer p = context.player(); … })` |
+| Server → Client | `ServerPlayNetworking.send(player, payload)` | `ClientPlayNetworking.registerGlobalReceiver(TYPE, (payload, context) -> …)` |
+
+- **Prüfen auf dem Server ist Pflicht.** Die Doku sagt ausdrücklich: *„It is important that you validate the content of the packet on the server side.“* Für uns heißt das: Rechte, Cooldowns und Min/Max **immer** auf dem Server prüfen, nie dem Client vertrauen.
+- Handler laufen auf dem Server-Hauptthread, man darf die Welt also direkt ändern **(ungeprüft, im Beispiel wird die Welt direkt geändert, was dafür spricht)**.
+
+### 5c. Bildschirme (Screens), nur Client
+
+Aus dem Doku-Beispiel `CustomScreen` (26.3):
+
+```java
+public class SettingsScreen extends Screen {
+    public SettingsScreen(Component title) { super(title); }
+
+    @Override
+    protected void init() {            // hier Widgets anlegen, nicht im Konstruktor
+        addRenderableWidget(Button.builder(Component.literal("Reset"), btn -> { /* Paket */ })
+                .bounds(40, 40, 120, 20).build());
+    }
+
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(graphics, mouseX, mouseY, delta);   // Hintergrund + Widgets
+        graphics.text(this.font, "Breachline", 40, 20, 0xFFFFFFFF, true);
+    }
+}
+```
+
+**Wichtige Umbenennungen in 26.x (bestätigt):**
+
+| Früher (1.21 und älter) | Jetzt (26.3) |
+|---|---|
+| `render(GuiGraphics …)` | `extractRenderState(GuiGraphicsExtractor …)` |
+| `graphics.drawString(…)` | `graphics.text(font, text, x, y, color, shadow)` |
+| `Minecraft.getInstance().setScreen(…)` | `Minecraft.getInstance().gui.setScreen(…)` |
+| `minecraft.screen` | `minecraft.gui.screen()` |
+
+- Öffnen: `Minecraft.getInstance().gui.setScreen(new SettingsScreen(…))`, z. B. aus dem Tasten-Handler (K) oder einem Server→Client-Paket (`/breachline settings`).
+- Schließen: `gui.setScreen(null)`. Mit `onClose()` überschreiben, um zum vorherigen Screen zurückzukehren.
+- Knöpfe: `Button.builder(text, onPress).bounds(x, y, w, h).build()`. Laut Doku Höhe 20 verwenden, sonst gibt es Textur-Fehler.
+- **Regler (Slider):** In Vanilla gibt es `AbstractSliderButton` **(ungeprüft für 26.3, im Doku-Referenzcode nicht verwendet)**. Notfalls bauen wir ein eigenes Widget nach dem Doku-Beispiel `CustomWidget`.
+- Fabric `ScreenEvents` / `ScreenKeyboardEvents` existieren für Tasten in fremden Screens. Für unseren eigenen Screen brauchen wir sie nicht.
+- Menüs mit Inventar-Slots (`MenuScreens.register`) sind etwas anderes. Die brauchen wir für die Einstellungen **nicht**.
+
+### 5d. Rechte bei Befehlen
+
+```java
+Commands.literal("set")
+    .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_MODERATOR))
+```
+
+- **Neu seit 26.x:** `source.permissions().hasPermission(Permissions.…)` statt früher `source.hasPermission(2)`. So steht es im Doku-Referenzcode.
+- Welche Stufe „Admin“ entspricht (`COMMANDS_MODERATOR` vs. `COMMANDS_GAMEMASTER`) **(ungeprüft)**. Wir prüfen das beim Bauen von 3a.
+- Für Pakete (GUI-Änderungen) dieselbe Prüfung auf dem `ServerPlayer` machen **(ungeprüft, ob `player.permissions()` direkt geht)**.
+
+### 5e. Spielerdaten (Data Attachment API)
+
+Für Modus, Operator und Ladungen pro Spieler. Bestätigt in `AttachmentRegistry` (Fabric API 26.3):
+
+- `AttachmentRegistry.create(id, builder -> builder.persistent(codec))`: wird mit dem Spieler gespeichert und übersteht Neustarts.
+- `.copyOnDeath()`: bleibt beim Tod erhalten. Das brauchen wir für Ladungen und Modus.
+- `.syncWith(streamCodec, AttachmentSyncPredicate…)`: automatische Synchronisation zum Client, z. B. für die HUD-Anzeige. Das spart eigene Pakete.
+- Zusätzlich gibt es `GlobalAttachments` in derselben API. Ob sich das für weltweite Einstellungen statt einer JSON-Datei eignet, ist **(ungeprüft)**. Der Plan bleibt JSON, weil Admins die Datei lesen und bearbeiten können.
+
+### 5f. Ungeklärt für Etappe 3a
+- Pfad zum Weltordner für `settings.json` (vermutlich `server.getWorldPath(LevelResource.ROOT)`) **(ungeprüft)**.
+- JSON lesen und schreiben mit Mojang-`Codec` + `JsonOps` **(ungeprüft für 26.3, war in 1.21 so)**.
+
+**Quellen Punkt 5:**
+- [fabric-docs: key-mappings.md](https://github.com/FabricMC/fabric-docs/blob/main/develop/key-mappings.md) + Referenz `ExampleModKeyMappingsClient.java`
+- [fabric-docs: networking.md](https://github.com/FabricMC/fabric-docs/blob/main/develop/networking.md) + Referenz `GiveGlowingEffectServerboundPayload.java`, `NetworkPayloads.java`, `ExampleModNetworkingBasic.java`
+- [fabric-docs: custom-screens.md](https://github.com/FabricMC/fabric-docs/blob/main/develop/rendering/gui/custom-screens.md) + Referenz `CustomScreen.java`
+- [fabric-api: AttachmentRegistry.java](https://github.com/FabricMC/fabric-api/blob/HEAD/fabric-data-attachment-api-v1/src/main/java/net/fabricmc/fabric/api/attachment/v1/AttachmentRegistry.java)
+- [fabric-api: ServerLivingEntityEvents.java](https://github.com/FabricMC/fabric-api/blob/HEAD/fabric-entity-events-v1/src/main/java/net/fabricmc/fabric/api/entity/event/v1/ServerLivingEntityEvents.java) (`ALLOW_DAMAGE` für PvP an/aus)
 
 ---
 

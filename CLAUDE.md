@@ -37,6 +37,12 @@ Die Versionen stehen in `gradle.properties`. Basis ist die offizielle `fabric-ex
 - Rechte: Globale Werte nur für Admins (Operator-Level), persönliche Optionen (HUD, Taste) für jeden Spieler.
 - Ein späterer Rundenmodus ist ein **separates, optionales Modul** und darf den Sandbox-Modus nicht verändern.
 
+## Entschiedene Spielregeln
+- Siege-Waffen, Fallen und Minen verletzen **keine Spieler im Normalmodus** (`mode.cross_mode_damage`, Standard aus). Zwischen Siege-Spielern entscheidet `pvp.enabled` (Standard an).
+- **Weiche** Breachline-Wände darf jeder abbauen wie Steinziegel. **Verstärkte** Wände sind geschützt, außer für Admins und im Kreativmodus.
+- Moduswechsel ist nach erlittenem Schaden gesperrt (`mode.damage_lock_seconds`, Standard 5 s, in beide Richtungen).
+- Offene Fragen stehen in `docs/roadmap.md` unter „Offene Fragen“.
+
 ## Arbeitsweise mit Noah (Anfänger)
 - Noah lernt Python und hat kein Java-Wissen. Antworte auf Deutsch.
 - Jeden Schritt kurz erklären: was gebaut wird und warum. Keine langen Vorträge.

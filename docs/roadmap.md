@@ -86,7 +86,7 @@ Empfohlene Reihenfolge von oben nach unten.
 - **Presets:** `/breachline preset casual|realistisch|chaos` überschreibt mehrere Werte auf einmal (siehe unten).
 - **Befehle:** `/breachline set <Wert> <Zahl>`, `/breachline get [Wert]` (ohne Angabe: alle). Tab-Vervollständigung für Wertnamen.
 - **Rechte:** `GLOBAL`-Werte nur mit Operator-Level (geprüft über `source.permissions().hasPermission(Permissions.COMMANDS_MODERATOR)`, siehe research.md). `get` darf jeder.
-- **Erste Werte:** `pvp.enabled`, `mode.switch_cooldown_seconds`, `operator.switch_cooldown_seconds`. Alle weiteren Werte kommen **in der Etappe dazu, die sie braucht** (Waffenwerte in 5, Fallenwerte in 7 …), damit es keine toten Einstellungen gibt.
+- **Erste Werte:** `pvp.enabled` (Standard an), `mode.cross_mode_damage` (Standard aus), `mode.switch_cooldown_seconds`, `mode.damage_lock_seconds` (Standard 5), `operator.switch_cooldown_seconds`. Alle weiteren Werte kommen **in der Etappe dazu, die sie braucht** (Waffenwerte in 5, Fallenwerte in 7 …), damit es keine toten Einstellungen gibt.
 
 | Teil | Server | Client |
 |---|---|---|
@@ -98,7 +98,7 @@ Empfohlene Reihenfolge von oben nach unten.
 
 **Modus „Normal“ / „Siege-Mix“:**
 - **Taste G** (frei belegbar in *Optionen → Steuerung*, eigene Kategorie „Breachline“) schickt nur eine **Anfrage** an den Server: `ToggleModePayload`.
-- Der Server prüft den Cooldown aus der Konfiguration und optional „nicht im Kampf“ (kein Schaden in den letzten X s). Erst dann schaltet er um und schickt den neuen Zustand zurück.
+- Der Server prüft den Cooldown aus der Konfiguration und die **Schadenssperre**: Wer in den letzten `mode.damage_lock_seconds` (Standard 5 s) Schaden bekommen hat, kann den Modus nicht wechseln. Die Sperre gilt in beide Richtungen. Erst nach bestandener Prüfung schaltet der Server um und schickt den neuen Zustand zurück.
 - Auch per Befehl: `/breachline mode [normal|siege]`.
 - Der Zustand liegt am Spieler (Data Attachment, `persistent` + `copyOnDeath`). Er übersteht Tod und Neustart.
 
@@ -112,7 +112,7 @@ Empfohlene Reihenfolge von oben nach unten.
 **Weiteres in 3b:**
 - Operator wählen: `/breachline operator <name>` mit 2 Platzhalter-Operatoren, Loadout aus Vanilla-Items.
 - Normaler Tod und Respawn: Modus und Operator bleiben, das Loadout wird beim Respawn neu gegeben.
-- PvP an/aus über den Konfigurationswert `pvp.enabled` (Fabric `ServerLivingEntityEvents.ALLOW_DAMAGE`).
+- Schadensregeln über Fabric `ServerLivingEntityEvents.ALLOW_DAMAGE` (siehe „Entschiedene Regeln“ unten): Siege gegen Normal blockiert, Siege gegen Siege nach `pvp.enabled`.
 - Mini-HUD: zeigt nur „SIEGE“ / „NORMAL“ in einer Ecke (Fabric `HudElementRegistry`). Persönliche Option „HUD an/aus“.
 
 | Teil | Server | Client |
@@ -141,8 +141,9 @@ Empfohlene Reihenfolge von oben nach unten.
 ## Etappe 4: Zerstörbare Wände + Verstärkung (überall)
 
 - Eigene Blöcke **„Weiche Wand“** und **„Verstärkte Wand“** + Block-Tag `breachline:breakable_wall`. Die Testmap tauscht `HouseBuilder.WALL_BLOCK`.
-- Verstärkungs-Item, Durchbruch-Ladung (eigene Logik, keine Vanilla-Explosion), Schutz gegen Abbauen (`AttackBlockCallback` + `PlayerBlockBreakEvents.BEFORE`).
-- **Modus-Regel:** Schutz und Gadgets wirken nur für Spieler im Siege-Modus. Wie sich die Wandblöcke für Normal-Spieler verhalten, ist eine offene Frage (siehe unten).
+- Verstärkungs-Item, Durchbruch-Ladung (eigene Logik, keine Vanilla-Explosion).
+- **Abbau-Regel (entschieden):** Die **weiche Wand** baut jeder ab wie Steinziegel. Die **verstärkte Wand** ist gegen Abbauen geschützt (`AttackBlockCallback` + `PlayerBlockBreakEvents.BEFORE`), außer für Admins und im Kreativmodus. Zerstören lässt sie sich sonst nur mit dem passenden Gadget.
+- Gadgets wirken nur für Spieler im Siege-Modus.
 
 | Server | Client |
 |---|---|
@@ -167,7 +168,7 @@ Hitscan-Waffe: Magazin (Data Component), Nachladen (Taste R → Paket), Streuung
 Stachelmatte (verlangsamt + Schaden), Elektrodraht (Schaden über Zeit mit Warnung), Mine (Explosion ohne Blockzerstörung).
 
 - Fallen merken sich ihren Besitzer, lösen bei ihm nicht aus und verschwinden nach einer konfigurierbaren Zeit.
-- Fallen lösen nur bei Spielern im Siege-Modus aus **(Vorschlag, siehe offene Fragen)**.
+- Fallen und Minen lösen **nur bei Spielern im Siege-Modus** aus und verletzen nie Normal-Spieler (entschieden). Zwischen Siege-Spielern gilt `pvp.enabled`.
 
 | Server | Client |
 |---|---|
@@ -240,7 +241,7 @@ Drohnen, Kameras (Kamera-Wechsel = hohes Risiko), Blendgranate, Rauchgranate.
 | Blend-/Rauchgranate | je 2 | 1 / 60 s | – | – |
 | Munition | Magazin + Reserve | Munitionskiste, 30 s Cooldown | – | Werte je Waffenkategorie |
 | Operator-Wechsel | – | Cooldown 30 s | – | gegen Nachfüllen durch Wechseln |
-| Modus-Wechsel (G) | – | Cooldown 10 s | – | gegen „Flucht“ in den Normalmodus |
+| Modus-Wechsel (G) | – | Cooldown 10 s | – | plus Schadenssperre 5 s (`mode.damage_lock_seconds`) |
 
 ## Presets
 
@@ -257,8 +258,21 @@ Drohnen, Kameras (Kamera-Wechsel = hohes Risiko), Blendgranate, Rauchgranate.
 
 Ein Preset setzt die betroffenen Werte auf **Standard × Faktor** und begrenzt sie auf Min/Max. Danach kann man einzelne Werte weiter anpassen.
 
-## Offene Fragen (vor Etappe 3b/4 klären)
+## Entschiedene Regeln (Oktober 2026)
 
-1. **Siege-Spieler gegen Normal-Spieler:** Dürfen Siege-Waffen und -Fallen Normal-Spieler verletzen? Mein Vorschlag: nein, per Konfiguration `mode.cross_mode_damage` (Standard: aus). Sonst wird der Normalmodus zum Freiwild-Modus.
-2. **Wandblöcke für Normal-Spieler:** Sollen Normal-Spieler Breachline-Wände mit der Spitzhacke abbauen können? Vorschlag: ja, wie Steinziegel. Der Schutz gilt nur gegen Siege-Spieler, damit Normal-Spieler nicht feststecken.
-3. **Kampf-Sperre beim Moduswechsel:** Wechsel verbieten, wenn man in den letzten 5 s Schaden bekommen hat? Vorschlag: ja, als Konfigurationswert.
+| Thema | Regel | Konfiguration |
+|---|---|---|
+| Siege gegen Normal | Siege-Waffen, Fallen und Minen verletzen **keine** Spieler im Normalmodus | `mode.cross_mode_damage` (Standard: aus) |
+| Siege gegen Siege | Schaden je nach PvP-Einstellung | `pvp.enabled` (Standard: an) |
+| Weiche Breachline-Wand | Darf von **allen** abgebaut werden, wie Steinziegel | – |
+| Verstärkte Wand | Geschützt gegen Abbauen, **außer für Admins und im Kreativmodus** | – |
+| Moduswechsel nach Schaden | 5 s gesperrt, in beide Richtungen | `mode.damage_lock_seconds` (Standard 5) |
+
+## Offene Fragen
+
+Diese Punkte sind noch nicht geklärt. Spätestens vor der genannten Etappe entscheiden.
+
+1. **Normal-Spieler greift Siege-Spieler an** (vor 3b): Darf ein Normal-Spieler mit Vanilla-Schwert oder -Bogen einen Siege-Spieler verletzen? Sonst ist es einseitig: Siege-Spieler können Normal-Spieler nicht treffen, umgekehrt aber schon.
+2. **Weiche Wand + Spitzhacke** (vor 4): Wenn Siege-Spieler weiche Wände auch einfach abbauen dürfen, verliert die Durchbruch-Ladung ihren Zweck. Soll das Abbauen für Siege-Spieler wenigstens deutlich langsamer sein (z. B. wie Obsidian)?
+3. **Moduswechsel und Items** (vor 3b): Beim Wechsel zu Normal die Siege-Items „parken“ und später zurückgeben, oder einfach entfernen und beim Zurückwechseln das Loadout neu geben? Parken ist komfortabler, Neugeben ist einfacher und sicherer gegen Duplizieren.
+4. **Admin-Stufe** (vor 3a): Reicht Operator-Level 2 (`COMMANDS_MODERATOR`) für globale Einstellungen, oder nur volle Admins (Level 4)?

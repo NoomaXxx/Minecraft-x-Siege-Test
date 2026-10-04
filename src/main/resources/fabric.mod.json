@@ -1,0 +1,27 @@
+{
+	"schemaVersion": 1,
+	"id": "breachline",
+	"version": "${version}",
+	"name": "Breachline",
+	"description": "Taktik-Shooter-Mechaniken fuer Minecraft: Runden, Teams, zerstoerbare Waende, Hitscan-Waffen.",
+	"authors": [
+		"Noah"
+	],
+	"license": "CC0-1.0",
+	"icon": "assets/breachline/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"dev.noah.breachline.Breachline"
+		],
+		"client": [
+			"dev.noah.breachline.client.BreachlineClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

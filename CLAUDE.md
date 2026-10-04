@@ -1,7 +1,11 @@
 # CLAUDE.md – Breachline
 
 ## Projektziel
-Breachline ist ein Minecraft-Java-Mod (Fabric), der Taktik-Shooter-Mechaniken im Stil von Rainbow Six Siege nachbaut: Runden, Teams, zerstörbare und verstärkbare Wände, Hitscan-Waffen, Kriechen und Lehnen.
+Breachline ist ein **Sandbox**-Mod für Minecraft Java (Fabric), der Taktik-Shooter-Mechaniken im Stil von Rainbow Six Siege nachbaut: Operatoren mit Loadout, zerstörbare und verstärkbare Wände, Hitscan-Waffen, Fallen, Kriechen und Lehnen.
+- **Kein Rundenspiel:** kein Rundensystem, keine Phasen, keine Timer, keine festen Teams. Alle Mechaniken sind jederzeit frei in der normalen Minecraft-Welt nutzbar. Ein Rundenmodus kommt höchstens später als optionaler Zusatz.
+- Begrenzung über **Vorrat/Cooldown pro Spieler** statt Rundenlimit. Ladungen werden am Spieler gespeichert, nicht im Item.
+- Mehrspieler immer mitdenken: Der Server entscheidet, Zustände pro Spieler.
+- Etappenplan: `docs/roadmap.md`.
 - **Nur die Mechaniken.** Keine Ubisoft-Assets, -Namen, -Logos, -Operator- oder -Gadget-Namen.
 - Alle Namen, Texturen und Sounds sind eigene oder Platzhalter.
 

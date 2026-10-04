@@ -1,6 +1,7 @@
 # Breachline
 
-Ein Minecraft-Java-Mod (Fabric), der Mechaniken aus Taktik-Shootern nachbaut: Runden, Teams, zerstörbare Wände, Hitscan-Waffen, Lehnen.
+Ein **Sandbox**-Mod für Minecraft Java (Fabric) mit Mechaniken aus Taktik-Shootern: Operatoren, zerstörbare und verstärkbare Wände, Hitscan-Waffen, Fallen, Lehnen.
+Es gibt **keine Runden, Phasen oder festen Teams**: Alle Mechaniken sind jederzeit frei in der normalen Welt nutzbar.
 Alle Namen, Texturen und Sounds sind eigene oder Platzhalter, es gibt keine fremden Assets.
 
 | | Version |
@@ -54,7 +55,7 @@ Die fertige Mod-Datei entsteht mit `gradlew.bat build` unter `build/libs/breachl
 - Spawn-Bereiche außerhalb des Hauses:
   - Angreifer: südlich, rote Wolle mit roten Glas-Pfosten in den Ecken.
   - Verteidiger: nördlich, blaue Wolle mit blauen Glas-Pfosten in den Ecken.
-- `MapLayout` speichert alle Koordinaten (Haus, Spawns) und die Position der aktuellen Map. Etappe 3 nutzt `MapLayout.attackerSpawn()` und `MapLayout.defenderSpawn()`.
+- `MapLayout` speichert alle Koordinaten (Haus, Spawns) und die Position der aktuellen Map. Die Map dient jetzt als **Testgelände** für die Sandbox-Mechaniken. Die Spawns nutzt später ein optionaler Rundenmodus.
 - `/breachline map clear` entfernt die Map wieder. Ein erneutes `build` entfernt die alte Map automatisch.
 - Befehle liegen jetzt in `command/BreachlineCommands.java`. Mixins werden keine gebraucht.
 
@@ -65,8 +66,10 @@ Die fertige Mod-Datei entsteht mit `gradlew.bat build` unter `build/libs/breachl
 
 **Test:** Siehe Testanleitung unten.
 
-### Als Nächstes: Etappe 3, Rundensystem
-Vorbereitungsphase (45 s) und Kampfphase (3 min), Teams, Zuschauer nach dem Tod, Anzeige von Phase und Timer, Befehle `/breachline start|stop|team`.
+### Als Nächstes: Etappe 3, Sandbox-Grundlage
+Jederzeit einen Operator wählen (`/breachline operator <name>`) und sein Loadout bekommen, normaler Tod mit Respawn, PvP per Befehl an/aus, Ladungen pro Spieler gespeichert, Mehrspieler-tauglich.
+
+**Gesamtplan:** Alle Etappen mit Abhängigkeiten, Risiken und Gadget-Begrenzungen stehen in der **[Roadmap (docs/roadmap.md)](docs/roadmap.md)**.
 
 ## Testanleitung Etappe 2
 
@@ -90,6 +93,8 @@ src/main/java/dev/noah/breachline/            Logik für Server und Client
   ├─ command/BreachlineCommands.java           Alle /breachline-Befehle
   └─ map/MapLayout.java, HouseBuilder.java     Testmap: Koordinaten und Bau-Code
 src/client/java/dev/noah/breachline/client/   Nur Client (HUD, Tasten, Kamera)
+docs/roadmap.md                                Etappenplan (Sandbox-Konzept)
+docs/research.md                               Technik-Recherche
 src/main/resources/fabric.mod.json             Steckbrief des Mods für Fabric
 gradle.properties                              Versionen von Minecraft, Loader, Fabric API
 ```

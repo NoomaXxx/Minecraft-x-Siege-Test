@@ -34,13 +34,15 @@ Die Versionen stehen in `gradle.properties`. Basis ist die offizielle `fabric-ex
 - **Alle Limits und Spielwerte kommen aus der Konfiguration**: Munition, Magazin, Nachladezeit, Schaden, Vorrat, Cooldown, Regeneration, Max-aktiv, PvP, Wechsel-Cooldowns.
 - **Keine festen Spielwerte im Code.** Jeder Wert ist ein Konfigurationseintrag mit Standard, Minimum und Maximum und wird beim Setzen und Laden geprüft. Neue Werte kommen in der Etappe dazu, die sie braucht.
 - Konfiguration: JSON pro Welt (`<Welt>/breachline/settings.json`), Presets Casual/Realistisch/Chaos, Reset auf Standard, Befehle `/breachline set|get|preset|reset`.
-- Rechte: Globale Werte nur für Admins (Operator-Level), persönliche Optionen (HUD, Taste) für jeden Spieler.
+- Rechte: Globale Werte nur mit `Permissions.COMMANDS_MODERATOR` (Level 2), persönliche Optionen (HUD, Taste) für jeden Spieler.
 - Ein späterer Rundenmodus ist ein **separates, optionales Modul** und darf den Sandbox-Modus nicht verändern.
 
 ## Entschiedene Spielregeln
-- Siege-Waffen, Fallen und Minen verletzen **keine Spieler im Normalmodus** (`mode.cross_mode_damage`, Standard aus). Zwischen Siege-Spielern entscheidet `pvp.enabled` (Standard an).
-- **Weiche** Breachline-Wände darf jeder abbauen wie Steinziegel. **Verstärkte** Wände sind geschützt, außer für Admins und im Kreativmodus.
+- **Cross-Mode-Schaden ist symmetrisch:** Ist `mode.cross_mode_damage` aus (Standard), kann weder ein Siege-Spieler einen Normal-Spieler verletzen noch umgekehrt. Das gilt für Siege-Waffen, Fallen, Minen und Vanilla-Waffen. Zwischen Siege-Spielern entscheidet `pvp.enabled` (Standard an).
+- **Weiche** Breachline-Wände darf jeder abbauen: Normal-Spieler wie Steinziegel, **Siege-Spieler deutlich langsamer** (ähnlich Obsidian, Faktor in der Konfiguration). **Verstärkte** Wände sind geschützt, außer für Admins (`COMMANDS_MODERATOR`) und im Kreativmodus.
 - Moduswechsel ist nach erlittenem Schaden gesperrt (`mode.damage_lock_seconds`, Standard 5 s, in beide Richtungen).
+- Beim Wechsel in den Normalmodus werden **nur Breachline-Items** entfernt, Vanilla-Items bleiben unangetastet. Beim Zurückwechseln wird das Loadout **neu vergeben**, es wird nichts geparkt.
+- Globale Einstellungen ändern darf, wer `Permissions.COMMANDS_MODERATOR` (Operator-Level 2) hat. Persönliche Optionen darf jeder ändern.
 - Offene Fragen stehen in `docs/roadmap.md` unter „Offene Fragen“.
 
 ## Arbeitsweise mit Noah (Anfänger)

@@ -85,8 +85,8 @@ Empfohlene Reihenfolge von oben nach unten.
 - **Reset:** `/breachline reset` setzt alles auf Standard, `/breachline reset <Wert>` nur einen Wert.
 - **Presets:** `/breachline preset casual|realistisch|chaos` überschreibt mehrere Werte auf einmal (siehe unten).
 - **Befehle:** `/breachline set <Wert> <Zahl>`, `/breachline get [Wert]` (ohne Angabe: alle). Tab-Vervollständigung für Wertnamen.
-- **Rechte:** `GLOBAL`-Werte nur mit Operator-Level (geprüft über `source.permissions().hasPermission(Permissions.COMMANDS_MODERATOR)`, siehe research.md). `get` darf jeder.
-- **Erste Werte:** `pvp.enabled` (Standard an), `mode.cross_mode_damage` (Standard aus), `mode.switch_cooldown_seconds`, `mode.damage_lock_seconds` (Standard 5), `operator.switch_cooldown_seconds`. Alle weiteren Werte kommen **in der Etappe dazu, die sie braucht** (Waffenwerte in 5, Fallenwerte in 7 …), damit es keine toten Einstellungen gibt.
+- **Rechte (entschieden):** `GLOBAL`-Werte darf ändern, wer `Permissions.COMMANDS_MODERATOR` (Operator-Level 2) hat. Geprüft wird mit `source.permissions().hasPermission(Permissions.COMMANDS_MODERATOR)`, siehe research.md. `get` darf jeder.
+- **Erste Werte:** `pvp.enabled` (Standard an), `mode.cross_mode_damage` (Standard aus, gilt symmetrisch), `mode.switch_cooldown_seconds`, `mode.damage_lock_seconds` (Standard 5), `operator.switch_cooldown_seconds`. Alle weiteren Werte kommen **in der Etappe dazu, die sie braucht** (Waffenwerte in 5, Fallenwerte in 7 …), damit es keine toten Einstellungen gibt.
 
 | Teil | Server | Client |
 |---|---|---|
@@ -106,21 +106,24 @@ Empfohlene Reihenfolge von oben nach unten.
 
 | Richtung | Aktion |
 |---|---|
-| Siege → Normal | Siege-Items werden aus dem Inventar genommen und am Spieler „geparkt“, HUD aus, Wandschutz und Gadgets wirken für diesen Spieler nicht mehr |
-| Normal → Siege | Geparkte Items kommen zurück, oder das Loadout des gewählten Operators wird neu gegeben |
+| Siege → Normal | **Nur Breachline-Items** werden aus dem Inventar entfernt, Vanilla-Items bleiben unangetastet. HUD aus, Gadgets wirken für diesen Spieler nicht mehr. |
+| Normal → Siege | Das Loadout des gewählten Operators wird **neu vergeben**, mit Ladungen aus dem Spielerzustand. Es wird nichts geparkt. |
 
 **Weiteres in 3b:**
 - Operator wählen: `/breachline operator <name>` mit 2 Platzhalter-Operatoren, Loadout aus Vanilla-Items.
 - Normaler Tod und Respawn: Modus und Operator bleiben, das Loadout wird beim Respawn neu gegeben.
-- Schadensregeln über Fabric `ServerLivingEntityEvents.ALLOW_DAMAGE` (siehe „Entschiedene Regeln“ unten): Siege gegen Normal blockiert, Siege gegen Siege nach `pvp.enabled`.
+- Schadensregeln über Fabric `ServerLivingEntityEvents.ALLOW_DAMAGE` (siehe „Entschiedene Regeln“ unten).
+  - Ist `mode.cross_mode_damage` aus, ist Schaden zwischen Siege- und Normal-Spielern **in beide Richtungen** blockiert. Das gilt für Waffen, Fallen, Minen und Vanilla-Waffen. Der Verursacher wird über die Schadensquelle bestimmt, also auch bei Pfeilen und TNT über den Schützen bzw. Zünder **(ungeprüft, wie zuverlässig das bei TNT ist)**.
+  - Siege gegen Siege richtet sich nach `pvp.enabled`.
+- Breachline-Items erkennt der Server an einer eigenen Item-Kennung (Data Component oder Item-Tag `breachline:items`), damit beim Moduswechsel nur sie entfernt werden.
 - Mini-HUD: zeigt nur „SIEGE“ / „NORMAL“ in einer Ecke (Fabric `HudElementRegistry`). Persönliche Option „HUD an/aus“.
 
 | Teil | Server | Client |
 |---|---|---|
-| Spielerzustand, Cooldown-Prüfung, Item-Parken, Loadout, PvP | ✅ | – |
+| Spielerzustand, Cooldown-Prüfung, Breachline-Items entfernen, Loadout, Schadensregeln | ✅ | – |
 | Taste G, Paket senden, HUD-Anzeige | – | ✅ |
 
-**Risiko: mittel.** Das ist das erste eigene Netzwerk-Paket, und das Item-Parken darf keine Items verlieren oder verdoppeln. **Mixins: nein.**
+**Risiko: mittel.** Das ist das erste eigene Netzwerk-Paket. Außerdem muss das Entfernen wirklich alle Breachline-Items erwischen, auch in der Nebenhand und in Rüstungs-Slots. Nur das Spieler-Inventar wird angefasst, keine Kisten. **Mixins: nein.**
 
 ## Etappe 3c: Einstellungs-GUI
 
@@ -142,7 +145,10 @@ Empfohlene Reihenfolge von oben nach unten.
 
 - Eigene Blöcke **„Weiche Wand“** und **„Verstärkte Wand“** + Block-Tag `breachline:breakable_wall`. Die Testmap tauscht `HouseBuilder.WALL_BLOCK`.
 - Verstärkungs-Item, Durchbruch-Ladung (eigene Logik, keine Vanilla-Explosion).
-- **Abbau-Regel (entschieden):** Die **weiche Wand** baut jeder ab wie Steinziegel. Die **verstärkte Wand** ist gegen Abbauen geschützt (`AttackBlockCallback` + `PlayerBlockBreakEvents.BEFORE`), außer für Admins und im Kreativmodus. Zerstören lässt sie sich sonst nur mit dem passenden Gadget.
+- **Abbau-Regel (entschieden):**
+  - Die **weiche Wand** darf jeder abbauen, Normal-Spieler so schnell wie Steinziegel. **Siege-Spieler bauen deutlich langsamer ab** (Standard ähnlich wie Obsidian), damit die Durchbruch-Ladung ihren Zweck behält. Der Faktor kommt aus der Konfiguration (`wall.soft.siege_break_speed_multiplier`).
+  - Technik: Der eigene Block überschreibt `getDestroyProgress(state, player, level, pos)` und prüft den Modus des Spielers. Dafür braucht es keinen Mixin. Weil der Client den Abbau-Fortschritt mitberechnet, muss der Modus an den Client synchronisiert werden (Attachment `syncWith`) **(ungeprüft, ob die Methode in 26.3 noch so heißt)**.
+  - Die **verstärkte Wand** ist gegen Abbauen geschützt (`AttackBlockCallback` + `PlayerBlockBreakEvents.BEFORE`), außer für Admins (`COMMANDS_MODERATOR`) und im Kreativmodus. Sonst zerstört sie nur das passende Gadget.
 - Gadgets wirken nur für Spieler im Siege-Modus.
 
 | Server | Client |
@@ -262,17 +268,14 @@ Ein Preset setzt die betroffenen Werte auf **Standard × Faktor** und begrenzt s
 
 | Thema | Regel | Konfiguration |
 |---|---|---|
-| Siege gegen Normal | Siege-Waffen, Fallen und Minen verletzen **keine** Spieler im Normalmodus | `mode.cross_mode_damage` (Standard: aus) |
+| Siege ↔ Normal | **Symmetrisch:** Ist der Wert aus, kann weder ein Siege-Spieler einen Normal-Spieler verletzen noch umgekehrt. Gilt für Waffen, Fallen, Minen und Vanilla-Waffen. | `mode.cross_mode_damage` (Standard: aus) |
 | Siege gegen Siege | Schaden je nach PvP-Einstellung | `pvp.enabled` (Standard: an) |
-| Weiche Breachline-Wand | Darf von **allen** abgebaut werden, wie Steinziegel | – |
-| Verstärkte Wand | Geschützt gegen Abbauen, **außer für Admins und im Kreativmodus** | – |
+| Weiche Breachline-Wand | Darf von **allen** abgebaut werden. Normal-Spieler bauen so schnell wie Steinziegel ab, **Siege-Spieler deutlich langsamer** (ähnlich Obsidian). | `wall.soft.siege_break_speed_multiplier` |
+| Verstärkte Wand | Geschützt gegen Abbauen, **außer für Admins (`COMMANDS_MODERATOR`) und im Kreativmodus** | – |
 | Moduswechsel nach Schaden | 5 s gesperrt, in beide Richtungen | `mode.damage_lock_seconds` (Standard 5) |
+| Items beim Moduswechsel | Wechsel zu Normal: **nur Breachline-Items** werden entfernt, Vanilla-Items bleiben. Zurück zu Siege: Loadout wird **neu vergeben**. | – |
+| Admin-Rechte | Globale Einstellungen ändern darf, wer `Permissions.COMMANDS_MODERATOR` (Level 2) hat | – |
 
 ## Offene Fragen
 
-Diese Punkte sind noch nicht geklärt. Spätestens vor der genannten Etappe entscheiden.
-
-1. **Normal-Spieler greift Siege-Spieler an** (vor 3b): Darf ein Normal-Spieler mit Vanilla-Schwert oder -Bogen einen Siege-Spieler verletzen? Sonst ist es einseitig: Siege-Spieler können Normal-Spieler nicht treffen, umgekehrt aber schon.
-2. **Weiche Wand + Spitzhacke** (vor 4): Wenn Siege-Spieler weiche Wände auch einfach abbauen dürfen, verliert die Durchbruch-Ladung ihren Zweck. Soll das Abbauen für Siege-Spieler wenigstens deutlich langsamer sein (z. B. wie Obsidian)?
-3. **Moduswechsel und Items** (vor 3b): Beim Wechsel zu Normal die Siege-Items „parken“ und später zurückgeben, oder einfach entfernen und beim Zurückwechseln das Loadout neu geben? Parken ist komfortabler, Neugeben ist einfacher und sicherer gegen Duplizieren.
-4. **Admin-Stufe** (vor 3a): Reicht Operator-Level 2 (`COMMANDS_MODERATOR`) für globale Einstellungen, oder nur volle Admins (Level 4)?
+Zurzeit keine. Neue Fragen kommen hierher, sobald sie beim Bauen auftauchen.

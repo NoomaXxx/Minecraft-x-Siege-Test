@@ -47,13 +47,48 @@ Die fertige Mod-Datei entsteht mit `gradlew.bat build` unter `build/libs/breachl
 
 **Test:** `gradlew.bat runClient` → neue Einzelspielerwelt mit *Cheats an* → `/breachline ping` eingeben → Chatnachricht erscheint. Im Log (Konsole oder `run/logs/latest.log`) steht die Lade-Nachricht.
 
-### Als Nächstes: Etappe 2, Testmap „Haus“
-Zwei Stockwerke, mehrere Räume, Fenster, Türen, Spawn-Bereiche für Angreifer und Verteidiger, generierbar per Befehl.
+### Etappe 2: Testmap „Haus“ ✅
+- `/breachline map build` baut ein Haus per Java-Code (keine .nbt-Datei), relativ zur Spielerposition. Der Spieler steht danach mitten im Angreifer-Spawn.
+- Zwei Stockwerke mit je 6 Räumen (12 insgesamt), Fenster, Holztüren, offene Durchgänge, eine Treppe und ein Flachdach mit Brüstung.
+- **Alle Wände** (innen und außen) bestehen aus `HouseBuilder.WALL_BLOCK` (zurzeit Steinziegel). In Etappe 4 wird er durch einen eigenen Block ersetzt.
+- Spawn-Bereiche außerhalb des Hauses:
+  - Angreifer: südlich, roter Beton mit roten Woll-Pfosten in den Ecken.
+  - Verteidiger: nördlich, blauer Beton mit blauen Woll-Pfosten in den Ecken.
+- `MapLayout` speichert alle Koordinaten (Haus, Spawns) und die Position der aktuellen Map. Etappe 3 nutzt `MapLayout.attackerSpawn()` und `MapLayout.defenderSpawn()`.
+- `/breachline map clear` entfernt die Map wieder. Ein erneutes `build` entfernt die alte Map automatisch.
+- Befehle liegen jetzt in `command/BreachlineCommands.java`. Mixins werden keine gebraucht.
+
+**Grenzen (bewusst einfach gehalten):**
+- `clear` stellt nicht das alte Gelände her: Es räumt den Bereich frei und legt eine flache Grasschicht. Am besten testest du in einer **Superflach-Welt**.
+- Die Position der Map wird nur im Arbeitsspeicher gemerkt. Nach einem Neustart des Spiels kennt `clear` sie nicht mehr. Dann einfach neu bauen und wieder entfernen.
+- Die Befehle haben noch keine Rechte-Prüfung. Im Einzelspieler ist das egal, auf einem Server würden wir sie auf Admins beschränken.
+
+**Test:** Siehe Testanleitung unten.
+
+### Als Nächstes: Etappe 3, Rundensystem
+Vorbereitungsphase (45 s) und Kampfphase (3 min), Teams, Zuschauer nach dem Tod, Anzeige von Phase und Timer, Befehle `/breachline start|stop|team`.
+
+## Testanleitung Etappe 2
+
+1. `gradlew.bat runClient` → neue Welt, Typ **Superflach**, **Cheats an**.
+2. `/breachline map build` eingeben.
+   - Chat: „Testmap gebaut. Du stehst im Angreifer-Spawn (rot)…“
+   - Du stehst auf rotem Beton, nördlich vor dir das Steinziegel-Haus mit Holztür in der Mitte.
+3. Ins Haus gehen und prüfen:
+   - Erdgeschoss: 6 Räume, verbunden über Türen und offene Durchgänge.
+   - Vom Eingangsraum durch den Durchgang nach links (Südwesten): Holztreppe nach oben in den 1. Stock, dort ebenfalls 6 Räume.
+   - Fenster aus Glas in allen Außenwänden, Flachdach mit Rand oben.
+4. Durch die Hintertür (Norden) raus: Dort liegt der blaue Verteidiger-Spawn.
+5. `/breachline map clear` → Chat: „Testmap entfernt.“ Das Haus ist weg, nur flaches Gras bleibt.
+6. Gegenprobe: Noch einmal `/breachline map clear` → rote Meldung „Keine Testmap bekannt…“.
 
 ## Projektstruktur
 
 ```
-src/main/java/dev/noah/breachline/            Logik für Server und Client (Befehle, Runden, Items)
+src/main/java/dev/noah/breachline/            Logik für Server und Client
+  ├─ Breachline.java                           Einstiegspunkt, registriert alles
+  ├─ command/BreachlineCommands.java           Alle /breachline-Befehle
+  └─ map/MapLayout.java, HouseBuilder.java     Testmap: Koordinaten und Bau-Code
 src/client/java/dev/noah/breachline/client/   Nur Client (HUD, Tasten, Kamera)
 src/main/resources/fabric.mod.json             Steckbrief des Mods für Fabric
 gradle.properties                              Versionen von Minecraft, Loader, Fabric API

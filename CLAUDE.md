@@ -19,6 +19,7 @@ Die Versionen stehen in `gradle.properties`. Basis ist die offizielle `fabric-ex
 ## Code-Konventionen
 - **Der Spielcode ist seit 26.1 unverschleiert.** Verwende Mojangs offizielle Klassennamen (`Player`, `Level`, `Component`, `Commands`, `KeyMapping`). Yarn-Namen aus älteren Tutorials (`PlayerEntity`, `World`, `Text`, `KeyBinding`) gibt es hier nicht.
 - Fabric-API-Namen wurden ebenfalls angepasst (z. B. `KeyMappingHelper` statt `KeyBindingHelper`). Im Zweifel im Quellcode von `FabricMC/fabric-api` nachsehen, nicht aus dem Gedächtnis.
+- Gefärbte Blöcke sind in 26.x Familien: `Blocks.WOOL.red()`, `Blocks.STAINED_GLASS.blue()` statt `Blocks.RED_WOOL` usw.
 - Mod-ID `breachline`, Paket `dev.noah.breachline`. Server/gemeinsamer Code liegt in `src/main`, reiner Client-Code in `src/client`.
 - Wo es geht, offizielle Fabric-API nutzen. Mixins nur, wenn es nicht anders geht, und den Grund im Code und im README nennen.
 - Recherche-Ergebnisse stehen in `docs/research.md`.

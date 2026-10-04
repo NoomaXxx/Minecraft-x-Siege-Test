@@ -42,10 +42,11 @@ public final class HouseBuilder {
 	private static final Block DOOR_BLOCK = Blocks.OAK_DOOR;
 	private static final Block STAIR_BLOCK = Blocks.OAK_STAIRS;
 	private static final Block GROUND_BLOCK = Blocks.GRASS_BLOCK;
-	private static final Block ATTACKER_FLOOR = Blocks.RED_CONCRETE;
-	private static final Block ATTACKER_MARKER = Blocks.RED_WOOL;
-	private static final Block DEFENDER_FLOOR = Blocks.BLUE_CONCRETE;
-	private static final Block DEFENDER_MARKER = Blocks.BLUE_WOOL;
+	// Seit 26.x sind gefaerbte Bloecke in Familien sortiert: Blocks.WOOL.red() statt Blocks.RED_WOOL
+	private static final Block ATTACKER_FLOOR = Blocks.WOOL.red();
+	private static final Block ATTACKER_MARKER = Blocks.STAINED_GLASS.red();
+	private static final Block DEFENDER_FLOOR = Blocks.WOOL.blue();
+	private static final Block DEFENDER_MARKER = Blocks.STAINED_GLASS.blue();
 
 	/** Bloecke nur an die Clients schicken, ohne Nachbar-Updates (kein Wasserfluss, kein Abfallen). */
 	private static final int FLAGS = Block.UPDATE_CLIENTS;

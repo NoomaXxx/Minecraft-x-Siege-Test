@@ -1,11 +1,8 @@
 package dev.noah.breachline;
 
-import com.mojang.brigadier.CommandDispatcher;
+import dev.noah.breachline.command.BreachlineCommands;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,20 +23,7 @@ public class Breachline implements ModInitializer {
 
 		// Offizielle Fabric-API: meldet unsere Befehle an, sobald der Server sie abfragt.
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
-				registerCommands(dispatcher));
-	}
-
-	private static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher) {
-		// Ergibt den Befehl: /breachline ping
-		dispatcher.register(Commands.literal("breachline")
-				.then(Commands.literal("ping")
-						.executes(context -> {
-							CommandSourceStack source = context.getSource();
-							source.sendSuccess(() -> Component.literal(
-									"Breachline laeuft! Hallo " + source.getTextName() + "."), false);
-							LOGGER.info("/breachline ping ausgefuehrt von {}", source.getTextName());
-							return 1; // 1 = Befehl erfolgreich
-						})));
+				BreachlineCommands.register(dispatcher));
 	}
 
 	public static Identifier id(String path) {

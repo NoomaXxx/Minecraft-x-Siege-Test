@@ -1,6 +1,8 @@
 # Roadmap: Breachline als Sandbox-Mod
 
-Stand: Oktober 2026 · reine Planung, noch kein Code für Etappe 3+.
+Stand: Oktober 2026 · Etappen 1 bis 3b sind fertig und im Spiel getestet.
+
+> **Pausiert nach Etappe 3b, als Nächstes 3c (Einstellungs-GUI).**
 
 ## Grundkonzept
 

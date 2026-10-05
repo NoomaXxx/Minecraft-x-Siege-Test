@@ -198,7 +198,7 @@ KeyMapping.Category CATEGORY = KeyMapping.Category.register(Breachline.id("breac
 // Taste registrieren (Standard: G)
 KeyMapping toggleModeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
         "key.breachline.toggle_mode",   // Übersetzungsschlüssel (Text in assets/breachline/lang/*.json)
-        InputConstants.Type.KEYSYM,     // Tastatur (MOUSE für Maustasten)
+        InputConstants.Type.KEYBOARD,   // Tastatur (MOUSE für Maustasten), seit 26.x nicht mehr KEYSYM
         InputConstants.KEY_G,           // Standardtaste
         CATEGORY));
 

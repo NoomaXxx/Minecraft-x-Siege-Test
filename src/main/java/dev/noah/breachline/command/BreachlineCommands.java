@@ -17,6 +17,7 @@ import net.minecraft.server.level.ServerPlayer;
  *   /breachline map build   - baut die Testmap "Familienhaus" um den Spieler herum
  *   /breachline map clear   - entfernt die Testmap wieder
  *   /breachline get|set|reset|preset - Einstellungen, siehe SettingsCommands
+ *   /breachline mode|operator|hud    - eigener Spieler, siehe PlayerCommands
  */
 public final class BreachlineCommands {
 	private BreachlineCommands() { }
@@ -28,6 +29,9 @@ public final class BreachlineCommands {
 				.then(SettingsCommands.set())
 				.then(SettingsCommands.reset())
 				.then(SettingsCommands.preset())
+				.then(PlayerCommands.mode())
+				.then(PlayerCommands.operator())
+				.then(PlayerCommands.hud())
 				.then(Commands.literal("map")
 						.then(Commands.literal("build").executes(BreachlineCommands::buildMap))
 						.then(Commands.literal("clear").executes(BreachlineCommands::clearMap))));

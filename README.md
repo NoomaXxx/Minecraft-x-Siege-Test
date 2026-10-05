@@ -40,6 +40,8 @@ Die fertige Mod-Datei entsteht mit `gradlew.bat build` unter `build/libs/breachl
 
 ## Stand
 
+> **Pausiert nach Etappe 3b, als Nächstes 3c (Einstellungs-GUI).**
+
 ### Etappe 1: Projekt-Setup ✅
 - Projekt auf Basis der offiziellen `fabric-example-mod`, umbenannt zu `breachline` (Paket `dev.noah.breachline`).
 - Beim Start loggt der Mod `Breachline geladen - Taktik-Mod ist bereit.` (und auf dem Client zusätzlich `Breachline Client-Teil geladen.`).
@@ -114,7 +116,7 @@ Die fertige Mod-Datei entsteht mit `gradlew.bat build` unter `build/libs/breachl
 
 **Test:** Siehe Testanleitung unten.
 
-### Etappe 3b: Modus-Umschalter + Spielerzustand + Operator-Auswahl (im Test)
+### Etappe 3b: Modus-Umschalter + Spielerzustand + Operator-Auswahl ✅
 - **Modus pro Spieler:** Taste **G** (umbelegbar unter *Optionen → Steuerung → Breachline*) oder `/breachline mode [normal|siege]` schaltet zwischen „Normal-Minecraft“ und „Siege-Mix“ um.
   - Die Taste schickt nur eine Anfrage (`ToggleModePayload`), das ist unser erstes eigenes Netzwerk-Paket. Der Server prüft und antwortet in der Aktionsleiste über der Hotbar.
   - Geprüft wird: der Cooldown `mode.switch_cooldown_seconds` und die Schadenssperre `mode.damage_lock_seconds` (kein Wechsel kurz nach erlittenem Schaden, in beide Richtungen).

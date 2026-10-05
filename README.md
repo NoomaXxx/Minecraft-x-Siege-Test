@@ -65,7 +65,7 @@ Die fertige Mod-Datei entsteht mit `gradlew.bat build` unter `build/libs/breachl
 - Die Position der Map wird nur im Arbeitsspeicher gemerkt. Nach einem Neustart des Spiels kennt `clear` sie nicht mehr. Dann einfach neu bauen und wieder entfernen.
 - Die Befehle haben noch keine Rechte-Prüfung. Im Einzelspieler ist das egal, auf einem Server würden wir sie auf Admins beschränken.
 
-### Etappe 2b: Testmap „Familienhaus“ (im Test)
+### Etappe 2b: Testmap „Familienhaus“ ✅
 - Die Testmap ist größer und abwechslungsreicher. Die Befehle bleiben gleich (`/breachline map build|clear`).
 - **Haus** mit 25×19 Blöcken, 2 Stockwerken und je 6 Räumen.
 - **Keller** unter dem ganzen Haus mit 2 Räumen, Beton und Lampen im Boden. Die Treppe nach unten liegt im Raum hinten links (Nordwesten).
@@ -83,34 +83,58 @@ Die fertige Mod-Datei entsteht mit `gradlew.bat build` unter `build/libs/breachl
 
 **Grenzen:**
 - In einer Superflach-Welt bleibt nach `clear` ein 2 Blöcke hohes, flaches Erd-Plateau stehen, weil die Map dort angehoben wurde.
+- Funktional getestet, sieht aber noch schlicht aus. Wege zu schöneren Builds stehen in `docs/research.md` unter „Schöne Builds“.
+
+### Etappe 3a: Konfiguration + Befehle (im Test)
+- Zentrales Einstellungssystem in `config/`. Jeder Wert (`Setting`) hat Name, Kategorie, Typ, Standard, Minimum und Maximum.
+- Erste Werte (Standard, erlaubter Bereich):
+
+  | Einstellung | Standard | Bereich |
+  |---|---|---|
+  | `pvp.enabled` | an | an/aus |
+  | `mode.cross_mode_damage` | aus | an/aus |
+  | `mode.switch_cooldown_seconds` | 10 | 0–600 |
+  | `mode.damage_lock_seconds` | 5 | 0–60 |
+  | `operator.switch_cooldown_seconds` | 30 | 0–600 |
+
+  Die Werte wirken noch nicht im Spiel. Das kommt in Etappe 3b, die sie liest.
+- Gespeichert pro Welt in `<Weltordner>/breachline/settings.json`, nur Werte, die vom Standard abweichen. Beim Laden werden unbekannte Namen ignoriert, falsche Typen auf Standard gesetzt und Werte außerhalb von Min/Max auf die Grenze gesetzt, jeweils mit Hinweis im Log.
+- Befehle:
+  - `/breachline get [einstellung]` zeigt Werte an (jeder).
+  - `/breachline set <einstellung> <wert>` ändert einen Wert, Schalter mit `an`/`aus`. Werte außerhalb von Min/Max werden abgelehnt.
+  - `/breachline reset [einstellung]` setzt einen oder alle Werte auf Standard.
+  - `/breachline preset casual|realistisch|chaos` setzt die Cooldowns auf Standard × 0,5 / × 2 / × 0 und PvP an.
+  - Tab vervollständigt die Namen.
+- **Rechte:** `set`, `reset` und `preset` nur mit `Permissions.COMMANDS_MODERATOR` (Operator-Level 2). Ohne das Recht sind die Befehle unsichtbar. Im Einzelspieler mit *Cheats an* hast du es.
+- JSON über Gson, das Minecraft schon mitbringt. Gespeichert wird beim Ändern, geladen beim Start der Welt (Fabric `ServerLifecycleEvents`). Mixins werden keine gebraucht.
+
+**Bewusst noch nicht drin** (kommt mit der Etappe, die es braucht):
+- Kommazahlen: Es gibt noch keinen Wert, der eine braucht.
+- Persönliche Optionen (HUD usw.): kommen in 3b und werden am Spieler gespeichert, nicht in der Welt-Datei.
 
 **Test:** Siehe Testanleitung unten.
 
-### Als Nächstes: Etappe 3a, Konfiguration + Befehle
-Zentrales Einstellungssystem: Jeder Wert hat Standard/Min/Max, gespeichert als JSON pro Welt, Presets (Casual, Realistisch, Chaos), Befehle `/breachline set|get|preset|reset`, globale Werte nur für Admins.
-
-Danach folgen:
+### Als Nächstes: Etappe 3b
 - **3b:** Modus-Umschalter **G** (Normal-Minecraft ↔ Siege-Mix, pro Spieler auf dem Server), Spielerzustand, Operator-Auswahl, PvP an/aus.
 - **3c:** Einstellungs-GUI (Taste **K**, `/breachline settings`).
 - **Dann:** Wände, Schießen, Fallen, Operatoren, Bewegung, optionaler Rundenmodus.
 
 **Gesamtplan:** Alle Etappen mit Abhängigkeiten, Risiken, Client-/Server-Aufteilung, Gadget-Begrenzungen und Presets stehen in der **[Roadmap (docs/roadmap.md)](docs/roadmap.md)**.
 
-## Testanleitung Etappe 2b
+## Testanleitung Etappe 3a
 
-1. `gradlew.bat runClient` → neue Welt, Typ **Superflach**, **Cheats an**.
-2. `/breachline map build` eingeben.
-   - Chat: „Testmap gebaut. Du stehst im Angreifer-Spawn (rot)…“
-   - Du stehst auf roter Wolle. Nördlich vor dir liegt der Vorgarten mit Mauer, rotem Autowrack und Fässern, dahinter das Ziegelhaus mit Balkon. Rechts daneben ist die Garage.
-3. Ins Haus gehen (Haupteingang in der Mitte) und prüfen:
-   - Erdgeschoss: 6 Räume mit Innenwänden aus Holz, verbunden über Türen und Durchgänge.
-   - Raum links vorne (Südwesten): Treppe in den 1. Stock. Oben ebenfalls 6 Räume, im mittleren vorderen Raum die Tür zum Balkon.
-   - Raum links hinten (Nordwesten): Treppe in den Keller. Unten 2 Beton-Räume mit Licht im Boden.
-   - Raum rechts vorne (Südosten): Tür in die Garage mit Auto, Tor nach vorne offen.
-4. Durch die Hintertür (Norden) raus: Garten mit Hecken und Holzstapel, dahinter der blaue Verteidiger-Spawn.
-5. Rechts hinten am Haus die Leiter hoch aufs Dach: 2 Falltüren (Dachluken) lassen sich öffnen, darunter liegen Räume im 1. Stock.
-6. `/breachline map clear` → Chat: „Testmap entfernt.“ Das Haus ist weg, ein flaches Gras-Plateau bleibt.
-7. Gegenprobe: Noch einmal `/breachline map clear` → rote Meldung „Keine Testmap bekannt…“.
+1. `gradlew.bat runClient` → neue Welt, **Cheats an**.
+2. `/breachline get` → Liste der 5 Werte nach Kategorie, alle ohne `*`.
+3. `/breachline set mode.damage_lock_seconds 20` → „mode.damage_lock_seconds = 20“. Danach zeigt `/breachline get mode.damage_lock_seconds` den Wert mit `*`.
+4. Fehlerfälle (rote Meldung, nichts ändert sich):
+   - `/breachline set mode.damage_lock_seconds 999` → „muss zwischen 0 und 60 liegen“
+   - `/breachline set pvp.enabled vielleicht` → „Erlaubt: an/aus“
+   - `/breachline set gibtsnicht 1` → „Unbekannte Einstellung“
+5. `/breachline set pvp.enabled aus`, dann `/breachline preset chaos` → `get` zeigt beide Cooldowns = 0 und PvP wieder an. `damage_lock` bleibt 20.
+6. **Speichern prüfen:** Welt verlassen und wieder laden → `/breachline get` zeigt dieselben Werte. Die Datei liegt unter `run/saves/<Weltname>/breachline/settings.json`.
+7. **Kaputte Datei:** Welt verlassen, in `settings.json` bei `mode.damage_lock_seconds` die Zahl auf `500` ändern, Welt laden → der Wert ist 60, und im Log steht „liegt ausserhalb von 0-60, nehme 60“.
+8. `/breachline reset` → alles auf Standard, keine `*` mehr.
+9. **Rechte** (optional, braucht einen Server mit 2. Spieler): Ein Spieler ohne Operator-Recht sieht `set`/`reset`/`preset` nicht, nur `get`.
 
 ## Projektstruktur
 
@@ -118,6 +142,8 @@ Danach folgen:
 src/main/java/dev/noah/breachline/            Logik für Server und Client
   ├─ Breachline.java                           Einstiegspunkt, registriert alles
   ├─ command/BreachlineCommands.java           Alle /breachline-Befehle
+  ├─ command/SettingsCommands.java             get/set/reset/preset
+  ├─ config/                                   Einstellungen: Setting, BreachlineSettings, Preset
   └─ map/MapLayout.java, HouseBuilder.java     Testmap: Koordinaten und Bau-Code
 src/client/java/dev/noah/breachline/client/   Nur Client (HUD, Tasten, Kamera)
 docs/roadmap.md                                Etappenplan (Sandbox-Konzept)

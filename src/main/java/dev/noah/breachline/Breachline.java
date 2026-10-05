@@ -1,8 +1,10 @@
 package dev.noah.breachline;
 
 import dev.noah.breachline.command.BreachlineCommands;
+import dev.noah.breachline.config.BreachlineSettings;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +26,10 @@ public class Breachline implements ModInitializer {
 		// Offizielle Fabric-API: meldet unsere Befehle an, sobald der Server sie abfragt.
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
 				BreachlineCommands.register(dispatcher));
+
+		// Einstellungen der Welt laden, bevor Spieler beitreten, und beim Beenden vergessen.
+		ServerLifecycleEvents.SERVER_STARTING.register(BreachlineSettings::load);
+		ServerLifecycleEvents.SERVER_STOPPED.register(server -> BreachlineSettings.unload());
 	}
 
 	public static Identifier id(String path) {

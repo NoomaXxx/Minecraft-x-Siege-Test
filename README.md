@@ -85,7 +85,7 @@ Die fertige Mod-Datei entsteht mit `gradlew.bat build` unter `build/libs/breachl
 - In einer Superflach-Welt bleibt nach `clear` ein 2 Blöcke hohes, flaches Erd-Plateau stehen, weil die Map dort angehoben wurde.
 - Funktional getestet, sieht aber noch schlicht aus. Wege zu schöneren Builds stehen in `docs/research.md` unter „Schöne Builds“.
 
-### Etappe 3a: Konfiguration + Befehle (fertig, im Spiel getestet)
+### Etappe 3a: Konfiguration + Befehle ✅
 - Zentrales Einstellungssystem in `config/`. Jeder Wert (`Setting`) hat Name, Kategorie, Typ, Standard, Minimum und Maximum.
 - Erste Werte (Standard, erlaubter Bereich):
 
@@ -114,27 +114,49 @@ Die fertige Mod-Datei entsteht mit `gradlew.bat build` unter `build/libs/breachl
 
 **Test:** Siehe Testanleitung unten.
 
-### Als Nächstes: Etappe 3b
-- **3b:** Modus-Umschalter **G** (Normal-Minecraft ↔ Siege-Mix, pro Spieler auf dem Server), Spielerzustand, Operator-Auswahl, PvP an/aus.
+### Etappe 3b: Modus-Umschalter + Spielerzustand + Operator-Auswahl (im Test)
+- **Modus pro Spieler:** Taste **G** (umbelegbar unter *Optionen → Steuerung → Breachline*) oder `/breachline mode [normal|siege]` schaltet zwischen „Normal-Minecraft“ und „Siege-Mix“ um.
+  - Die Taste schickt nur eine Anfrage (`ToggleModePayload`), das ist unser erstes eigenes Netzwerk-Paket. Der Server prüft und antwortet in der Aktionsleiste über der Hotbar.
+  - Geprüft wird: der Cooldown `mode.switch_cooldown_seconds` und die Schadenssperre `mode.damage_lock_seconds` (kein Wechsel kurz nach erlittenem Schaden, in beide Richtungen).
+- **Wechsel nach Siege:** Du bekommst das Loadout deines Operators neu. **Wechsel nach Normal:** Nur Breachline-Items werden entfernt (Inventar, Rüstung, Nebenhand, 2×2-Werkbank, Item am Mauszeiger), Vanilla-Items bleiben.
+- **Breachline-Items** haben eine Markierung in den Item-Daten (`CUSTOM_DATA` mit `breachline_item`). Dazu kommt der Vanilla-„Fluch des Verschwindens“: Beim Tod verschwinden sie, statt herumzuliegen. Nach dem Respawn gibt es ein frisches Loadout.
+- **Operatoren (Platzhalter):** `/breachline operator breacher|warden`, ohne Angabe zeigt der Befehl Modus und Operator an. Es gilt der Cooldown `operator.switch_cooldown_seconds`. In Etappe 8 werden die Operatoren durch JSON-Dateien ersetzt.
+  - **Breacher:** Eisenaxt, Eisenschwert, Lederhelm
+  - **Warden:** Eisenschwert, Schild (Nebenhand), Eisenbrustpanzer
+- **Spielerzustand** (Modus, Operator, HUD-Option) hängt am Spieler (Fabric Data Attachment). Er bleibt beim Tod und nach dem Neustart erhalten und wird automatisch an den eigenen Client geschickt. Cooldowns und Schadenssperre werden nicht gespeichert, nach einem Neustart ist alles frei.
+- **Schadensregeln** (Fabric `ServerLivingEntityEvents.ALLOW_DAMAGE`), nur zwischen Spielern:
+  - Siege gegen Normal (beide Richtungen): nur wenn `mode.cross_mode_damage` an ist (Standard aus).
+  - Siege gegen Siege: nur wenn `pvp.enabled` an ist (Standard an).
+  - Normal gegen Normal: wie in Vanilla.
+  - Der Verursacher kommt aus der Schadensquelle, bei Pfeilen also der Schütze.
+- **Mini-HUD** oben links: „SIEGE“ (orange) oder „NORMAL“ (grau). Persönliche Option: `/breachline hud an|aus`, jeder darf sie ändern.
+- Mixins werden keine gebraucht.
+
+**Grenzen:**
+- Wer ein Breachline-Item mit Q wegwirft, kann es an andere Spieler weitergeben. Entfernt wird es erst, wenn deren Besitzer in den Normalmodus wechselt oder ein neues Loadout bekommt.
+- Schaden durch gezähmte Tiere (z. B. Wölfe) zählt nicht als Spielerschaden und wird nicht geregelt.
+
+**Test:** Siehe Testanleitung unten.
+
+### Als Nächstes: Etappe 3c
 - **3c:** Einstellungs-GUI (Taste **K**, `/breachline settings`).
 - **Dann:** Wände, Schießen, Fallen, Operatoren, Bewegung, optionaler Rundenmodus.
 
 **Gesamtplan:** Alle Etappen mit Abhängigkeiten, Risiken, Client-/Server-Aufteilung, Gadget-Begrenzungen und Presets stehen in der **[Roadmap (docs/roadmap.md)](docs/roadmap.md)**.
 
-## Testanleitung Etappe 3a
+## Testanleitung Etappe 3b
 
-1. `gradlew.bat runClient` → neue Welt, **Cheats an**.
-2. `/breachline get` → Liste der 5 Werte nach Kategorie, alle ohne `*`.
-3. `/breachline set mode.damage_lock_seconds 20` → „mode.damage_lock_seconds = 20“. Danach zeigt `/breachline get mode.damage_lock_seconds` den Wert mit `*`.
-4. Fehlerfälle (rote Meldung, nichts ändert sich):
-   - `/breachline set mode.damage_lock_seconds 999` → „muss zwischen 0 und 60 liegen“
-   - `/breachline set pvp.enabled vielleicht` → „Erlaubt: an/aus“
-   - `/breachline set gibtsnicht 1` → „Unbekannte Einstellung“
-5. `/breachline set pvp.enabled aus`, dann `/breachline preset chaos` → `get` zeigt beide Cooldowns = 0 und PvP wieder an. `damage_lock` bleibt 20.
-6. **Speichern prüfen:** Welt verlassen und wieder laden → `/breachline get` zeigt dieselben Werte. Die Datei liegt unter `run/saves/<Weltname>/breachline/settings.json`.
-7. **Kaputte Datei:** Welt verlassen, in `settings.json` bei `mode.damage_lock_seconds` die Zahl auf `500` ändern, Welt laden → der Wert ist 60, und im Log steht „liegt ausserhalb von 0-60, nehme 60“.
-8. `/breachline reset` → alles auf Standard, keine `*` mehr.
-9. **Rechte** (optional, braucht einen Server mit 2. Spieler): Ein Spieler ohne Operator-Recht sieht `set`/`reset`/`preset` nicht, nur `get`.
+1. `gradlew.bat runClient` → neue Welt im **Überlebensmodus** mit **Cheats an**. Oben links steht grau „NORMAL“.
+2. Ein paar Vanilla-Items ins Inventar legen (z. B. Erde). **G** drücken → „Modus: SIEGE …“ über der Hotbar, oben links „SIEGE“. Du hast Eisenaxt, Eisenschwert und auf dem Kopf einen Lederhelm. Die Items leuchten (Fluch des Verschwindens).
+3. Sofort noch einmal **G** → „Moduswechsel erst in … s“.
+4. 10 s warten, **G** → „Modus: NORMAL“. Axt, Schwert und Helm sind weg, die Erde ist noch da.
+5. **Schadenssperre:** `/breachline set mode.switch_cooldown_seconds 0`. Von 4 Blöcken Höhe springen und sofort **G** → „Du hast gerade Schaden bekommen …“. Nach 5 s klappt es.
+6. **Operator:** `/breachline operator` zeigt Modus und Operator. Im Siege-Modus `/breachline operator warden` → Schwert, Schild in der linken Hand, Eisenbrustpanzer. Der Lederhelm ist weg. Sofort `/breachline operator breacher` → „Operator-Wechsel erst in … s“.
+7. **Tod:** Im Siege-Modus `/kill` → am Boden liegen keine Loadout-Items (Vanilla-Items schon). Nach dem Respawn hast du das Loadout neu, oben links steht weiter „SIEGE“.
+8. **Speichern:** Welt verlassen und neu laden → Modus und Operator sind gleich geblieben.
+9. `/breachline hud aus` → die Anzeige ist weg. `/breachline hud an` → sie ist wieder da.
+10. *Optionen → Steuerung → Breachline*: Die Taste „Modus wechseln“ lässt sich auf eine andere Taste legen.
+11. **Schadensregeln** (optional, braucht einen 2. Spieler, z. B. per LAN): Siege-Spieler schlägt Normal-Spieler → kein Schaden. Nach `/breachline set mode.cross_mode_damage an` gibt es Schaden. Beide im Siege-Modus mit `/breachline set pvp.enabled aus` → kein Schaden.
 
 ## Projektstruktur
 
@@ -143,9 +165,12 @@ src/main/java/dev/noah/breachline/            Logik für Server und Client
   ├─ Breachline.java                           Einstiegspunkt, registriert alles
   ├─ command/BreachlineCommands.java           Alle /breachline-Befehle
   ├─ command/SettingsCommands.java             get/set/reset/preset
+  ├─ command/PlayerCommands.java               mode/operator/hud
   ├─ config/                                   Einstellungen: Setting, BreachlineSettings, Preset
+  ├─ player/                                   Spielerzustand, Modus- und Schadensregeln, Operatoren, Loadout
+  ├─ network/ToggleModePayload.java            Paket Taste G (Client → Server)
   └─ map/MapLayout.java, HouseBuilder.java     Testmap: Koordinaten und Bau-Code
-src/client/java/dev/noah/breachline/client/   Nur Client (HUD, Tasten, Kamera)
+src/client/java/dev/noah/breachline/client/   Nur Client: Taste G, Modus-Anzeige
 docs/roadmap.md                                Etappenplan (Sandbox-Konzept)
 docs/research.md                               Technik-Recherche
 src/main/resources/fabric.mod.json             Steckbrief des Mods für Fabric

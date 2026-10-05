@@ -57,4 +57,4 @@ Die Versionen stehen in `gradle.properties`. Basis ist die offizielle `fabric-ex
 - In der Cloud-Umgebung ist `maven.fabricmc.net` gesperrt, ein lokaler Build ist dort nicht möglich.
 - **Nach jedem Push den GitHub-Actions-Build (`.github/workflows/build.yml`) prüfen.** Erst wenn er grün ist, gilt eine Etappe als gebaut. Ist er rot, Logs lesen, fixen und erneut pushen.
 - Ein grüner Build heißt nur „kompiliert“. Ob es im Spiel funktioniert, testet Noah lokal mit `gradlew.bat runClient`.
-- Entwicklungs-Branch: `claude/minecraft-tactical-shooter-mod-j0ygxt`.
+- **Branches:** Jede Etappe bekommt einen eigenen Branch (z. B. `etappe-2b-map`). In `main` gemergt wird erst, wenn Noah die Etappe im Spiel getestet und freigegeben hat.

@@ -316,6 +316,106 @@ Für Modus, Operator und Ladungen pro Spieler. Bestätigt in `AttachmentRegistry
 
 ---
 
+## 6. Schöne Builds
+
+**Frage:** Die Testmap aus Etappe 2b funktioniert, wird aber Block für Block im Java-Code gebaut und sieht entsprechend schlicht aus. Wie kommen wir zu schönen Häusern? Recherche vom 05.10.2026. Es wurde nichts installiert.
+
+### Empfehlung (kurz)
+
+Eine KI oder einen MCP-Server brauchen wir dafür nicht. Am einfachsten und sichersten ist:
+
+1. Das Haus **selbst in 26.3 bauen** (Kreativmodus, optional mit WorldEdit oder Axiom).
+2. Mit einem **Strukturblock** als Vanilla-Struktur (`.nbt`) speichern.
+3. Die Datei in den Mod legen: `src/main/resources/data/breachline/structure/<name>.nbt`.
+4. Bei `/breachline map build` per Code platzieren.
+
+| | Aufwand |
+|---|---|
+| Code | **klein**, ca. 30–60 Zeilen |
+| Bauen im Spiel | **mittel**, je nach Anspruch einige Stunden |
+
+**Wichtig:** Wände, die später zerstörbar oder verstärkbar sein sollen, müssen Breachline-Blöcke sein (Etappe 4). Bis dahin baut man sie aus einem Platzhalter-Block und tauscht ihn später aus, oder man baut die Struktur nach Etappe 4 neu.
+
+### 6a. MCP-Server und KI-Bauwerkzeuge
+
+| Werkzeug | Wie es baut | Läuft mit 26.3? | Sicherheit | Urteil |
+|---|---|---|---|---|
+| **minecraft-mcp-server** (yuniko-software, Apache-2.0) | Mineflayer-Bot betritt eine LAN-Welt und setzt Blöcke selbst | **Nein.** Das README nennt 1.21.11, Mineflayer und node-minecraft-protocol unterstützen höchstens 26.1, Issue #3893 („unsupported protocol version“) ist offen | Start per `npx` direkt von GitHub, ca. 19 Prismarine-Abhängigkeiten (Lieferkette mittelgroß), LAN-Welt im lokalen Netz offen | unbrauchbar, außerdem langsam und grob |
+| **Blockwright** (ThatHunky, MIT) | MCP-Server über **RCON** (`/fill`, `/setblock`), kann `.schem` und `.nbt` einlesen, Vorschau, Undo | getestet auf Paper 26.2. RCON ist versionsunabhängig, also **wahrscheinlich ja (ungeprüft)** | RCON ist **unverschlüsselt** und führt jeden Befehl mit Admin-Rechten aus, nur auf einem dedizierten Server. Admin-Befehle sind nur mit `BLOCKWRIGHT_ALLOW_ADMIN` frei, `BLOCKWRIGHT_BOUNDS` begrenzt den Baubereich | höchstens ein optionales Experiment: nur auf `localhost`, Port nie ins Internet öffnen |
+| **MinecraftStructureInjector** (ewitulsk, MIT) | NeoForge-Mod + Python-MCP, platziert `.nbt`, macht Screenshots | **Nein**, nur NeoForge 26.2 | Bearer-Token in `connection.json`, Projekt mit 1 Stern (kaum geprüft) | passt nicht zu Fabric |
+| **KI-Generatoren im Web** (BlockGPT, Structmatic, Schematic Generator) | Text → `.schem`, `.litematic` oder `.nbt` | Datei ist versionsabhängig, Umwandlung nötig | Wem die Ergebnisse gehören und ob man sie weitergeben darf: **ungeprüft** (AGB lesen) | Lizenz und Qualität unklar |
+| **Blockbench-MCP** (schon eingerichtet) | Modelle für Items und Blöcke | ja (Version 1.10.0 läuft) | nur `localhost:3000` | richtig für Waffen- und Gadget-Modelle, **nicht** für Häuser |
+
+### 6b. Dateiformate und Laden aus Fabric-Code
+
+| Format | Woher | Laden im Mod |
+|---|---|---|
+| **Vanilla-Struktur `.nbt`** | Strukturblock, `/place template`, Axiom-Export | **direkt mit Vanilla-Code**, keine Bibliothek nötig |
+| Sponge `.schem` | WorldEdit | Vanilla kann es nicht laden, man bräuchte einen eigenen Parser. Besser nach `.nbt` umwandeln |
+| `.litematic` | Litematica | ebenso, vorher umwandeln |
+
+**Vanilla-Struktur laden (Namen im 26.3-Jar geprüft):**
+
+```java
+Optional<StructureTemplate> template = level.getStructureTemplateManager()   // ServerLevel
+        .get(Identifier.fromNamespaceAndPath("breachline", "haus"));         // = data/breachline/structure/haus.nbt
+template.ifPresent(t -> t.placeInWorld(level, pos, pos, new StructurePlaceSettings(), level.getRandom(), Block.UPDATE_CLIENTS));
+```
+
+- Geprüft per `javap`:
+  - `ServerLevel.getStructureTemplateManager()`, nicht `getStructureManager()`, wie es in manchen Quellen steht
+  - `StructureTemplateManager.get(Identifier)` → `Optional<StructureTemplate>`
+  - `StructureTemplate.placeInWorld(ServerLevelAccessor, BlockPos, BlockPos, StructurePlaceSettings, RandomSource, int)`
+  - `getSize()`
+- Der Ordner heißt seit 1.21 **`structure`** (Einzahl), nicht `structures`.
+- Ohne Code testen: `/place template breachline:haus`.
+- **Größe:** Ein Strukturblock speichert höchstens **48 × 48 × 48**. Das Familienhaus (39 × 19 × 57 mit Garten) passt nicht in einen Block, man teilt es in 2 Teile auf (z. B. Haus + Garten). Laden und Platzieren per Code funktioniert auch mit größeren Dateien, z. B. aus Axiom **(ungeprüft)**.
+- Ältere `.nbt`-Dateien rüstet Minecraft beim Laden über den DataFixer hoch. Eine Datei aus einer **neueren** Version lässt sich in einer älteren vermutlich nicht laden **(ungeprüft)**.
+- Umwandler `.schem`/`.litematic` → `.nbt`: SchemConvert, bloxelizer.com, Amulet (ob 26.3 unterstützt wird: **ungeprüft**).
+- Fabric-Werkzeuge für 26.3 (Modrinth, geprüft):
+
+  | Mod | Version | Stand |
+  |---|---|---|
+  | WorldEdit | 7.4.6 | **nur Beta** (24.09.2026) |
+  | Litematica | 26.3-0.29.1 | Release (27.09.2026) |
+  | Axiom | 6.1.3 | Release (25.09.2026), Lizenz „All Rights Reserved“, exportiert `.nbt` |
+
+### 6c. Fertige Häuser mit Lizenz
+
+| Quelle | Weitergabe im Mod erlaubt? |
+|---|---|
+| **Planet Minecraft** | Nur wenn der Autor es ausdrücklich per Lizenz erlaubt (z. B. Creative Commons). Ohne Angabe: **nein**. |
+| **Minecraft-Schematics.com** | Das Urheberrecht bleibt bei den Autoren. Eine allgemeine Erlaubnis gibt es nicht. |
+| **Modrinth / CurseForge** | Je nach Lizenzfeld des Projekts: CC0, CC-BY und MIT **ja** (mit Namensnennung), „All Rights Reserved“ **nein**. |
+
+- Mojangs Regeln (Usage Guidelines, EULA): Eigene Bauten in einem kostenlosen Mod sind unproblematisch.
+- Fremde Siege-Karten nachzubauen und Ubisoft-Namen zu verwenden bleibt tabu (siehe CLAUDE.md).
+- **Am sichersten**, in dieser Reihenfolge:
+  1. selbst bauen,
+  2. CC0- oder CC-BY-Werke mit Namensnennung in README und `fabric.mod.json`,
+  3. den Autor schriftlich fragen und die Antwort aufheben.
+
+### 6d. Risiken
+
+- Die WorldEdit-Version für 26.3 ist nur Beta. Ohne WorldEdit geht es auch, ist dann aber langsamer.
+- Der Strukturblock speichert höchstens 48³, große Maps müssen in Teile aufgeteilt werden.
+- Entities in der Struktur (Rahmen, Rüstungsständer) und Blöcke anderer Mods brauchen beim Platzieren Aufmerksamkeit.
+- Wenn das Haus aus einer Datei kommt, ist `MapLayout` (Spawns, Größen) nicht mehr automatisch passend. Die Koordinaten müssen zur Struktur passen.
+
+**Quellen Punkt 6:**
+- [yuniko-software/minecraft-mcp-server](https://github.com/yuniko-software/minecraft-mcp-server) · [Mineflayer](https://github.com/prismarinejs/mineflayer) · [node-minecraft-protocol](https://github.com/PrismarineJS/node-minecraft-protocol) · [Mineflayer Issue #3893](https://github.com/PrismarineJS/mineflayer/issues/3893)
+- [ThatHunky/blockwright](https://github.com/ThatHunky/blockwright) · [Minecraft Wiki: RCON](https://minecraft.wiki/w/RCON)
+- [ewitulsk/MinecraftStructureInjector](https://github.com/ewitulsk/MinecraftStructureInjector)
+- [BlockGPT](https://blockgpt.ai/) · [Structmatic](https://structmatic.com/generate) · [Schematic Generator](https://schematicgenerator.com/)
+- [Minecraft Wiki: Structure file](https://minecraft.wiki/w/Structure_file) · [Minecraft Wiki: Structure Block](https://minecraft.wiki/w/Structure_Block) · [misode: 1.21 Änderungen](https://misode.github.io/versions/?id=1.21)
+- [Axiom-Doku: Export](https://axiomdocs.moulberry.com/editor/mainmenubar/file.html) · [StructurePlacerAPI (CC0)](https://github.com/Emafire003/StructurePlacerAPI/)
+- [SchemConvert](https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-tools/3215615-introducing-schemconvert-a-lightweight-tool-to) · [bloxelizer](https://bloxelizer.com/convert) · [Amulet](https://github.com/Podshot/Amulet-Map-Editor)
+- Modrinth: [WorldEdit](https://modrinth.com/plugin/worldedit) · [Litematica](https://modrinth.com/mod/litematica) · [Axiom](https://modrinth.com/mod/axiom)
+- [Planet Minecraft: Terms of Use](https://www.planetminecraft.com/terms_of_use/) · [Minecraft-Schematics: Terms](https://www.minecraft-schematics.com/terms/)
+- [Minecraft Usage Guidelines](https://www.minecraft.net/en-us/usage-guidelines) · [Minecraft EULA](https://www.minecraft.net/en-us/eula)
+
+---
+
 ## Gesamt-Fazit
 
 | Etappe | Schwierigkeit | Mixins | Hauptrisiko |

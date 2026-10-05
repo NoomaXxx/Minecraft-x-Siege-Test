@@ -53,6 +53,16 @@ Die Versionen stehen in `gradle.properties`. Basis ist die offizielle `fabric-ex
 - Ehrlich sagen, was in Minecraft nur eingeschränkt geht.
 - Am Ende jeder Etappe die `README.md` aktualisieren: was gebaut wurde und was als Nächstes kommt.
 
+## Modelle mit Blockbench (MCP)
+- Modelle für Waffen, Gadgets und Fallen erstellt Claude in Blockbench über den MCP-Server (`.mcp.json`, `http://localhost:3000/bb-mcp`), Format **Java Block/Item** (`java_block`).
+- **Reihenfolge:** Erst Blockbench (Desktop) mit dem Plugin „MCP Server“ starten, dann Claude Code. Läuft Blockbench nicht, schlägt die Verbindung mit `ECONNREFUSED` fehl. Danach `/mcp` → neu verbinden.
+- **Eigene Designs**, keine Ubisoft-Modelle oder -Namen. Texturen werden selbst erstellt.
+- **Speicherorte:**
+  - Blockbench-Quelldateien: `art/blockbench/<waffen|gadgets|fallen>/<name>.bbmodel` (nicht im Mod-Jar).
+  - Exportierte Modelle: `src/main/resources/assets/breachline/models/item/<name>.json`
+  - Texturen: `src/main/resources/assets/breachline/textures/item/<name>.png`
+- **`risky_eval` nicht benutzen.** Nur die dafür vorgesehenen MCP-Werkzeuge (z. B. `place_cube`, `modify_cube`, `create_texture`, `export_model`).
+
 ## Build und Prüfung
 - In der Cloud-Umgebung ist `maven.fabricmc.net` gesperrt, ein lokaler Build ist dort nicht möglich.
 - **Nach jedem Push den GitHub-Actions-Build (`.github/workflows/build.yml`) prüfen.** Erst wenn er grün ist, gilt eine Etappe als gebaut. Ist er rot, Logs lesen, fixen und erneut pushen.

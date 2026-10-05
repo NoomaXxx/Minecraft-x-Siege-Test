@@ -65,7 +65,7 @@ Die fertige Mod-Datei entsteht mit `gradlew.bat build` unter `build/libs/breachl
 - Die Position der Map wird nur im Arbeitsspeicher gemerkt. Nach einem Neustart des Spiels kennt `clear` sie nicht mehr. Dann einfach neu bauen und wieder entfernen.
 - Die Befehle haben noch keine Rechte-Prüfung. Im Einzelspieler ist das egal, auf einem Server würden wir sie auf Admins beschränken.
 
-### Etappe 2b: Testmap „Familienhaus“ (im Test)
+### Etappe 2b: Testmap „Familienhaus“ ✅
 - Die Testmap ist größer und abwechslungsreicher. Die Befehle bleiben gleich (`/breachline map build|clear`).
 - **Haus** mit 25×19 Blöcken, 2 Stockwerken und je 6 Räumen.
 - **Keller** unter dem ganzen Haus mit 2 Räumen, Beton und Lampen im Boden. Die Treppe nach unten liegt im Raum hinten links (Nordwesten).

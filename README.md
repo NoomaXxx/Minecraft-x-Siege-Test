@@ -85,7 +85,7 @@ Die fertige Mod-Datei entsteht mit `gradlew.bat build` unter `build/libs/breachl
 - In einer Superflach-Welt bleibt nach `clear` ein 2 Blöcke hohes, flaches Erd-Plateau stehen, weil die Map dort angehoben wurde.
 - Funktional getestet, sieht aber noch schlicht aus. Wege zu schöneren Builds stehen in `docs/research.md` unter „Schöne Builds“.
 
-### Etappe 3a: Konfiguration + Befehle (im Test)
+### Etappe 3a: Konfiguration + Befehle (fertig, im Spiel getestet)
 - Zentrales Einstellungssystem in `config/`. Jeder Wert (`Setting`) hat Name, Kategorie, Typ, Standard, Minimum und Maximum.
 - Erste Werte (Standard, erlaubter Bereich):
 

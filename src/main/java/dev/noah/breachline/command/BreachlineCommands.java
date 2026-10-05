@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerPlayer;
  *   /breachline ping        - Test, ob der Mod laeuft
  *   /breachline map build   - baut die Testmap "Familienhaus" um den Spieler herum
  *   /breachline map clear   - entfernt die Testmap wieder
+ *   /breachline get|set|reset|preset - Einstellungen, siehe SettingsCommands
  */
 public final class BreachlineCommands {
 	private BreachlineCommands() { }
@@ -23,6 +24,10 @@ public final class BreachlineCommands {
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(Commands.literal("breachline")
 				.then(Commands.literal("ping").executes(BreachlineCommands::ping))
+				.then(SettingsCommands.get())
+				.then(SettingsCommands.set())
+				.then(SettingsCommands.reset())
+				.then(SettingsCommands.preset())
 				.then(Commands.literal("map")
 						.then(Commands.literal("build").executes(BreachlineCommands::buildMap))
 						.then(Commands.literal("clear").executes(BreachlineCommands::clearMap))));

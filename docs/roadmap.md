@@ -143,7 +143,7 @@ Empfohlene Reihenfolge von oben nach unten.
 
 ## Etappe 4: Zerstörbare Wände + Verstärkung (überall)
 
-- Eigene Blöcke **„Weiche Wand“** und **„Verstärkte Wand“** + Block-Tag `breachline:breakable_wall`. Die Testmap tauscht `HouseBuilder.WALL_BLOCK`.
+- Eigene Blöcke **„Weiche Wand“** und **„Verstärkte Wand“** + Block-Tag `breachline:breakable_wall`. Die Testmap tauscht die Wand-Materialien in `HouseBuilder` (`OUTER_WALL`, `INNER_WALL`, `BASEMENT_WALL`).
 - Verstärkungs-Item, Durchbruch-Ladung (eigene Logik, keine Vanilla-Explosion).
 - **Abbau-Regel (entschieden):**
   - Die **weiche Wand** darf jeder abbauen, Normal-Spieler so schnell wie Steinziegel. **Siege-Spieler bauen deutlich langsamer ab** (Standard ähnlich wie Obsidian), damit die Durchbruch-Ladung ihren Zweck behält. Der Faktor kommt aus der Konfiguration (`wall.soft.siege_break_speed_multiplier`).

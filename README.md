@@ -65,6 +65,25 @@ Die fertige Mod-Datei entsteht mit `gradlew.bat build` unter `build/libs/breachl
 - Die Position der Map wird nur im Arbeitsspeicher gemerkt. Nach einem Neustart des Spiels kennt `clear` sie nicht mehr. Dann einfach neu bauen und wieder entfernen.
 - Die Befehle haben noch keine Rechte-Prüfung. Im Einzelspieler ist das egal, auf einem Server würden wir sie auf Admins beschränken.
 
+### Etappe 2b: Testmap „Familienhaus“ (im Test)
+- Die Testmap ist größer und abwechslungsreicher. Die Befehle bleiben gleich (`/breachline map build|clear`).
+- **Haus** mit 25×19 Blöcken, 2 Stockwerken und je 6 Räumen.
+- **Keller** unter dem ganzen Haus mit 2 Räumen, Beton und Lampen im Boden. Die Treppe nach unten liegt im Raum hinten links (Nordwesten).
+- **Garage** an der Ostseite mit offenem Tor, einem Auto und einer Tür ins Haus.
+- **Balkon** im 1. Stock über dem Haupteingang, mit Geländer.
+- **Dach** mit 2 Dachluken (Falltüren) und einer Leiter an der Ostwand.
+- **Deckung draußen:**
+  - Vorgarten (Angreifer-Seite): Mauer, Autowrack, Fässer.
+  - Garten (Verteidiger-Seite): Hecken und ein Holzstapel.
+- **Materialien:**
+  - Außenwände aus Ziegel, Innenwände aus Fichtenholz, Keller aus grauem Beton.
+  - Die Konstanten `OUTER_WALL`, `INNER_WALL` und `BASEMENT_WALL` in `HouseBuilder` ersetzen das alte `WALL_BLOCK`.
+- Reicht der Platz nach unten nicht für den Keller, wird die Map automatisch angehoben. In einer Superflach-Welt passiert das (2 Blöcke), weil das Bedrock dort nur 4 Blöcke unter dem Gras liegt. Danach wirst du in den Angreifer-Spawn teleportiert.
+- Mixins werden keine gebraucht.
+
+**Grenzen:**
+- In einer Superflach-Welt bleibt nach `clear` ein 2 Blöcke hohes, flaches Erd-Plateau stehen, weil die Map dort angehoben wurde.
+
 **Test:** Siehe Testanleitung unten.
 
 ### Als Nächstes: Etappe 3a, Konfiguration + Befehle
@@ -77,19 +96,21 @@ Danach folgen:
 
 **Gesamtplan:** Alle Etappen mit Abhängigkeiten, Risiken, Client-/Server-Aufteilung, Gadget-Begrenzungen und Presets stehen in der **[Roadmap (docs/roadmap.md)](docs/roadmap.md)**.
 
-## Testanleitung Etappe 2
+## Testanleitung Etappe 2b
 
 1. `gradlew.bat runClient` → neue Welt, Typ **Superflach**, **Cheats an**.
 2. `/breachline map build` eingeben.
    - Chat: „Testmap gebaut. Du stehst im Angreifer-Spawn (rot)…“
-   - Du stehst auf roter Wolle, nördlich vor dir das Steinziegel-Haus mit Holztür in der Mitte.
-3. Ins Haus gehen und prüfen:
-   - Erdgeschoss: 6 Räume, verbunden über Türen und offene Durchgänge.
-   - Vom Eingangsraum durch den Durchgang nach links (Südwesten): Holztreppe nach oben in den 1. Stock, dort ebenfalls 6 Räume.
-   - Fenster aus Glas in allen Außenwänden, Flachdach mit Rand oben.
-4. Durch die Hintertür (Norden) raus: Dort liegt der blaue Verteidiger-Spawn.
-5. `/breachline map clear` → Chat: „Testmap entfernt.“ Das Haus ist weg, nur flaches Gras bleibt.
-6. Gegenprobe: Noch einmal `/breachline map clear` → rote Meldung „Keine Testmap bekannt…“.
+   - Du stehst auf roter Wolle. Nördlich vor dir liegt der Vorgarten mit Mauer, rotem Autowrack und Fässern, dahinter das Ziegelhaus mit Balkon. Rechts daneben ist die Garage.
+3. Ins Haus gehen (Haupteingang in der Mitte) und prüfen:
+   - Erdgeschoss: 6 Räume mit Innenwänden aus Holz, verbunden über Türen und Durchgänge.
+   - Raum links vorne (Südwesten): Treppe in den 1. Stock. Oben ebenfalls 6 Räume, im mittleren vorderen Raum die Tür zum Balkon.
+   - Raum links hinten (Nordwesten): Treppe in den Keller. Unten 2 Beton-Räume mit Licht im Boden.
+   - Raum rechts vorne (Südosten): Tür in die Garage mit Auto, Tor nach vorne offen.
+4. Durch die Hintertür (Norden) raus: Garten mit Hecken und Holzstapel, dahinter der blaue Verteidiger-Spawn.
+5. Rechts hinten am Haus die Leiter hoch aufs Dach: 2 Falltüren (Dachluken) lassen sich öffnen, darunter liegen Räume im 1. Stock.
+6. `/breachline map clear` → Chat: „Testmap entfernt.“ Das Haus ist weg, ein flaches Gras-Plateau bleibt.
+7. Gegenprobe: Noch einmal `/breachline map clear` → rote Meldung „Keine Testmap bekannt…“.
 
 ## Projektstruktur
 

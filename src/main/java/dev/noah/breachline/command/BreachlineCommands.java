@@ -9,11 +9,12 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 
 /**
  * Alle /breachline-Befehle:
  *   /breachline ping        - Test, ob der Mod laeuft
- *   /breachline map build   - baut die Testmap "Haus" um den Spieler herum
+ *   /breachline map build   - baut die Testmap "Familienhaus" um den Spieler herum
  *   /breachline map clear   - entfernt die Testmap wieder
  */
 public final class BreachlineCommands {
@@ -45,8 +46,15 @@ public final class BreachlineCommands {
 		}
 
 		BlockPos playerFeet = BlockPos.containing(source.getPosition());
-		BlockPos corner = MapLayout.cornerFromPlayer(playerFeet);
+		BlockPos corner = MapLayout.cornerFromPlayer(playerFeet, source.getLevel().getMinY());
 		HouseBuilder.build(source.getLevel(), corner);
+
+		// Wurde die Map wegen des Kellers angehoben, steckt der Spieler sonst in der Erde.
+		ServerPlayer player = source.getPlayer();
+		if (player != null) {
+			BlockPos spawn = MapLayout.attackerSpawn();
+			player.teleportTo(spawn.getX() + 0.5, spawn.getY(), spawn.getZ() + 0.5);
+		}
 
 		source.sendSuccess(() -> Component.literal(
 				"Testmap gebaut. Du stehst im Angreifer-Spawn (rot). Verteidiger-Spawn (blau) liegt hinter dem Haus."), true);
